@@ -7,10 +7,12 @@ import { Menu, X, ArrowUpRight, Tent } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import ThemeToggle from "@/components/theme-toggle"
+import BookingNoticeDialog from "@/components/booking-notice-dialog"
 
 const NAV_ITEMS = [
   { title: "Beranda", href: "/" },
   { title: "Katalog", href: "/katalog" },
+  { title: "Tentang Kami", href: "/#tentang-kami" },
   { title: "Keunggulan", href: "/#keunggulan" },
   { title: "Destinasi", href: "/#destinasi" },
   { title: "Cara Menyewa", href: "/#cara-pesan" },
@@ -54,7 +56,7 @@ export default function SiteHeader() {
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <ThemeToggle className="hidden size-9 rounded-full border-border/60 bg-card/80 shadow-sm transition hover:rotate-6 lg:flex" />
-          <Link href="/booking" className="hidden h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:opacity-90 sm:inline-flex sm:px-5 sm:text-sm">Pesan Sekarang <ArrowUpRight className="size-4" /></Link>
+          <BookingNoticeDialog label="Pesan Sekarang" className="hidden h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:opacity-90 sm:inline-flex sm:px-5 sm:text-sm" />
           <div className="flex items-center gap-2 xl:hidden">
             <div className="sm:hidden"><ThemeToggle className="size-9 rounded-full border-border/60 bg-card/80" /></div>
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -71,7 +73,7 @@ export default function SiteHeader() {
                   </nav>
                   <div className="mt-auto space-y-4 border-t border-border/60 pt-5">
                     <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Suasana tampilan</span><ThemeToggle className="size-10 rounded-full border-border/60 bg-background" /></div>
-                    <Link href="/booking" onClick={() => setIsOpen(false)} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-90">Pesan Sekarang <ArrowUpRight className="size-4" /></Link>
+                    <BookingNoticeDialog label="Pesan Sekarang" className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-90" />
                   </div>
                 </div>
               </SheetContent>

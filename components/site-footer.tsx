@@ -23,7 +23,7 @@ export default function SiteFooter() {
           <nav className="mt-6 flex flex-wrap gap-x-5 gap-y-3 text-sm text-muted-foreground">
             <Link href="/" className="transition hover:text-foreground">Beranda</Link>
             <Link href="/katalog" className="transition hover:text-foreground">Katalog</Link>
-            <Link href="/booking" className="transition hover:text-foreground">Booking</Link>
+            <Link href="/#cara-pesan" className="transition hover:text-foreground">Cara menyewa</Link>
             <Link href="/#destinasi" className="transition hover:text-foreground">Destinasi</Link>
           </nav>
         </div>

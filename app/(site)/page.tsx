@@ -1,15 +1,17 @@
 import Link from "next/link"
 import {
-  ArrowRight, ArrowUpRight, CalendarCheck, Clock3, Compass,
+  ArrowUpRight, CalendarCheck, Clock3, Compass,
   MessageCircle, PackageCheck, QrCode, Sparkles, Tent,
 } from "lucide-react"
 import FaqSection from "@/components/faq-section"
 import HomeHero from "@/components/home-hero"
 import MountainMap from "@/components/mountain-map"
 import ScrollReveal from "@/components/scroll-reveal"
-import { fetchCatalog, catalogCategories } from "@/lib/catalog"
+import { fetchCatalog, catalogCategories, formatRentalDuration } from "@/lib/catalog"
 import { fetchPublicTestimonials } from "@/lib/testimonials"
 import TestimonialSection from "@/components/testimonial-section"
+import AboutUs from "@/components/about-us"
+import BookingNoticeDialog from "@/components/booking-notice-dialog"
 import { formatRupiah, WA_NUMBER } from "@/lib/supabase"
 
 export const dynamic = "force-dynamic"
@@ -28,9 +30,10 @@ function SectionHeading({ eyebrow, title, italicWord, desc, align = "center" }: 
   )
 }
 
-function PriceTag({ price }: { price: number | null }) {
+function PriceTag({ price, durationValue, durationUnit }: { price: number | null; durationValue: number | null; durationUnit: string | null }) {
   if (price === null) return <span className="text-sm font-medium text-muted-foreground">Hubungi kami</span>
-  return <span className="text-base font-bold tracking-tight text-primary sm:text-lg">{formatRupiah(price)}<span className="ml-1 text-xs font-normal text-muted-foreground">/ hari</span></span>
+  const duration = formatRentalDuration(durationValue, durationUnit)
+  return <span className="text-base font-bold tracking-tight text-primary sm:text-lg">{formatRupiah(price)}{duration && <span className="ml-1 text-xs font-normal text-muted-foreground">/ {duration}</span>}</span>
 }
 
 const FEATURES = [
@@ -64,7 +67,7 @@ export default async function LandingPage() {
           <ScrollReveal>
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <SectionHeading eyebrow="Mengapa Akasha" title="Lebih siap berangkat," italicWord="lebih tenang." desc="Hal penting untuk menyewa perlengkapan outdoor—disajikan jelas dari awal sampai serah terima." align="left" />
-              <Link href="/booking" className="group inline-flex w-fit items-center gap-2 pb-1 text-sm font-semibold text-primary transition hover:gap-3">Mulai booking <ArrowRight className="size-4" /></Link>
+              <BookingNoticeDialog label="Mulai booking" className="group inline-flex w-fit items-center gap-2 pb-1 text-sm font-semibold text-primary transition hover:gap-3" />
             </div>
           </ScrollReveal>
 
@@ -85,6 +88,8 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+
+      <AboutUs />
 
       {categories.length > 0 && (
         <section className="border-y border-border/60 bg-muted/50 py-12 sm:py-14">
@@ -131,8 +136,8 @@ export default async function LandingPage() {
                       <h3 className="text-base font-semibold tracking-tight">{item.nama}</h3>
                       <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">{item.ringkasan_publik ?? item.deskripsi ?? "Perlengkapan outdoor untuk menemani perjalananmu."}</p>
                       <div className="mt-5 flex items-center justify-between gap-3 border-t border-border/60 pt-4">
-                        <PriceTag price={item.minPrice} />
-                        <Link href="/booking" aria-label={"Pesan " + item.nama} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground transition hover:opacity-90">Pesan <ArrowUpRight className="size-3.5" /></Link>
+                        <PriceTag price={item.minPrice} durationValue={item.minPriceDurationValue} durationUnit={item.minPriceDurationUnit} />
+                        <BookingNoticeDialog label="Pesan" ariaLabel={"Informasi pemesanan " + item.nama} icon={false} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground transition hover:opacity-90" />
                       </div>
                     </div>
                   </article>
@@ -163,7 +168,7 @@ export default async function LandingPage() {
           <ScrollReveal>
             <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl bg-secondary/65 p-5 sm:flex-row sm:px-7">
               <p className="text-center text-sm text-muted-foreground sm:text-left">Sudah tahu perlengkapan yang dibutuhkan?</p>
-              <Link href="/booking" className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:opacity-90">Mulai booking <ArrowRight className="size-4" /></Link>
+              <BookingNoticeDialog label="Mulai booking" className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:opacity-90" />
             </div>
           </ScrollReveal>
         </div>
@@ -188,7 +193,7 @@ export default async function LandingPage() {
           </ScrollReveal>
           <ScrollReveal delay={0.1}>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-              <Link href="/booking" className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-orange-500 px-6 text-sm font-semibold text-white transition hover:bg-orange-400">Pesan Sekarang <ArrowRight className="size-4" /></Link>
+              <BookingNoticeDialog label="Pesan Sekarang" className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-orange-500 px-6 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-orange-400" />
               <a href={waLink} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/25 bg-white/5 px-6 text-sm font-semibold text-white transition hover:bg-white/10">Tanya via WhatsApp <ArrowUpRight className="size-4" /></a>
             </div>
           </ScrollReveal>

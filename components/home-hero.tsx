@@ -2,8 +2,9 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowDown, ArrowRight, CalendarDays, Clock3, MoonStar, ShieldCheck, Sparkles, Sun, Tent } from "lucide-react"
+import { ArrowDown, CalendarDays, Clock3, MoonStar, ShieldCheck, Sparkles, Sun, Tent } from "lucide-react"
 import { useTheme } from "next-themes"
+import BookingNoticeDialog from "@/components/booking-notice-dialog"
 
 export default function HomeHero() {
   const { resolvedTheme, setTheme } = useTheme()
@@ -42,7 +43,7 @@ export default function HomeHero() {
           </p>
 
           <div className="hero-enter hero-enter--4 mt-6 flex flex-wrap items-center gap-3">
-            <Link href="/booking" className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-orange-500 px-6 text-sm font-semibold text-white shadow-lg shadow-orange-950/20 transition duration-300 hover:-translate-y-0.5 hover:bg-orange-400 sm:h-13 sm:px-7">Pesan Sekarang <ArrowRight className="size-4" /></Link>
+            <BookingNoticeDialog label="Pesan Sekarang" className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-orange-500 px-6 text-sm font-semibold text-white shadow-lg shadow-orange-950/20 transition duration-300 hover:-translate-y-0.5 hover:bg-orange-400 sm:h-13 sm:px-7" />
             <Link href="/katalog" className="inline-flex h-12 items-center justify-center rounded-full border border-white/45 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:border-white/70 hover:bg-white/20 sm:h-13 sm:px-7">Jelajahi Katalog</Link>
           </div>
 
