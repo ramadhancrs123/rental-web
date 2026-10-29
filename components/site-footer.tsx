@@ -24,7 +24,7 @@ export default function SiteFooter() {
             <Link href="/" className="transition hover:text-foreground">Beranda</Link>
             <Link href="/katalog" className="transition hover:text-foreground">Katalog</Link>
             <Link href="/#cara-pesan" className="transition hover:text-foreground">Cara menyewa</Link>
-            <Link href="/#destinasi" className="transition hover:text-foreground">Destinasi</Link>
+            <Link href="/destinasi" className="transition hover:text-foreground">Destinasi</Link>
           </nav>
         </div>
 

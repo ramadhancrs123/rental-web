@@ -5,7 +5,7 @@ import {
 } from "lucide-react"
 import FaqSection from "@/components/faq-section"
 import HomeHero from "@/components/home-hero"
-import MountainMap from "@/components/mountain-map"
+import DestinationsHighlight from "@/components/destinations-highlight"
 import ScrollReveal from "@/components/scroll-reveal"
 import { fetchCatalog, catalogCategories, formatRentalDuration } from "@/lib/catalog"
 import { fetchPublicTestimonials } from "@/lib/testimonials"
@@ -148,7 +148,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <MountainMap />
+      <DestinationsHighlight />
 
       <section id="cara-pesan" className="scroll-mt-24 px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
         <div className="mx-auto max-w-7xl">

@@ -1,0 +1,109 @@
+import { AlertCircle, ExternalLink, Images, ImagePlus } from "lucide-react"
+import { type HikingAdvisory, type HikingMedia, formatIndonesianDate } from "@/lib/hiking"
+
+function severityClass(value?: string | null) {
+  const normalized = value?.toLowerCase()
+  if (normalized === "extreme" || normalized === "critical" || normalized === "high") return "bg-red-500/10 text-red-700 dark:text-red-300"
+  if (normalized === "moderate" || normalized === "medium") return "bg-amber-500/10 text-amber-800 dark:text-amber-200"
+  return "bg-primary/10 text-primary"
+}
+
+export function HikingAdvisories({ items, unavailable = false }: { items: HikingAdvisory[]; unavailable?: boolean }) {
+  return (
+    <section className="overflow-hidden rounded-3xl border border-border/60 bg-card">
+      <div className="flex items-start gap-3 border-b border-border/60 p-5 sm:p-6">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><AlertCircle className="size-5" /></span>
+        <div><h2 className="text-base font-semibold tracking-tight">Informasi keselamatan</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Advisori yang dipublikasikan untuk destinasi ini.</p></div>
+      </div>
+      <div className="p-5 sm:p-6">
+        {unavailable ? (
+          <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-4">
+            <p className="text-sm font-semibold">Informasi keselamatan belum dapat dimuat</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Periksa kembali nanti dan rujuk informasi resmi pengelola. Kegagalan memuat data tidak berarti destinasi aman.</p>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border p-4">
+            <p className="text-sm font-semibold">Belum ada advisori yang dipublikasikan</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Data kosong bukan berarti destinasi bebas risiko. Periksa ketentuan dan informasi resmi pengelola sebelum berangkat.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {items.map((item) => {
+              const sourceUrl = item.source_url?.startsWith("https://") ? item.source_url : null
+              return (
+                <article key={item.advisory_id} className="rounded-2xl border border-border/60 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {item.severity && <span className={"rounded-full px-2.5 py-1 text-[10px] font-semibold " + severityClass(item.severity)}>{item.severity}</span>}
+                    {item.official_source && <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">Sumber resmi</span>}
+                  </div>
+                  <h3 className="mt-3 text-sm font-semibold leading-5">{item.title}</h3>
+                  {item.description && <p className="mt-2 text-xs leading-5 text-muted-foreground">{item.description}</p>}
+                  {item.instruction && <p className="mt-3 rounded-xl bg-muted/60 p-3 text-xs leading-5"><span className="font-semibold">Arahan:</span> {item.instruction}</p>}
+                  <p className="mt-3 text-[10px] leading-4 text-muted-foreground">Mulai: {formatIndonesianDate(item.starts_at) ?? "Tidak tersedia"} · Berakhir: {formatIndonesianDate(item.expires_at) ?? "Tidak tersedia"} · Verifikasi: {formatIndonesianDate(item.verified_at) ?? "Waktu tidak tersedia"}</p>
+                  {sourceUrl && <a href={sourceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">Buka sumber <ExternalLink className="size-3.5" /></a>}
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+export function HikingMediaGallery({ items, unavailable = false }: { items: HikingMedia[]; unavailable?: boolean }) {
+  if (!items.length && !unavailable) return null
+  if (unavailable && !items.length) return (
+    <section className="rounded-3xl border border-border/60 bg-card p-5 sm:p-6">
+      <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"><Images className="size-5" /></span><div><h2 className="text-base font-semibold">Galeri destinasi</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Media belum dapat dimuat saat ini. Coba kembali nanti.</p></div></div>
+    </section>
+  )
+  return (
+    <section className="overflow-hidden rounded-3xl border border-border/60 bg-card">
+      <div className="flex items-center gap-3 border-b border-border/60 p-5 sm:p-6">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Images className="size-5" /></span>
+        <div><h2 className="text-base font-semibold tracking-tight">Galeri destinasi</h2><p className="mt-1 text-xs text-muted-foreground">Media yang telah dipublikasikan untuk destinasi ini.</p></div>
+      </div>
+      <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3">
+        {items.map((item) => (
+          <figure key={item.media_id} className="overflow-hidden rounded-2xl border border-border/60 bg-background">
+            {item.mediaUrl ? (
+              <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                {/* Signed storage URLs are short-lived and intentionally rendered without the Next image optimizer. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={item.mediaUrl} alt={item.alt_text || item.caption || "Foto destinasi pendakian"} loading="lazy" decoding="async" className="size-full object-cover" />
+              </div>
+            ) : <div className="aspect-[4/3] bg-muted" />}
+            {item.caption && <figcaption className="p-3 text-xs leading-5 text-muted-foreground">{item.caption}</figcaption>}
+          </figure>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+
+export function HikingMediaSlots({ mountainName }: { mountainName: string }) {
+  return (
+    <section className="overflow-hidden rounded-3xl border border-border/60 bg-card">
+      <div className="flex items-center gap-3 border-b border-border/60 p-5 sm:p-6">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Images className="size-5" /></span>
+        <div><h2 className="text-base font-semibold tracking-tight">Galeri {mountainName}</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Tiga slot foto destinasi tersedia dan siap diisi media yang hak penggunaannya telah dipastikan.</p></div>
+      </div>
+      <div className="grid gap-3 p-4 sm:grid-cols-3 sm:p-5">
+        {[1, 2, 3].map((slot) => (
+          <figure key={slot} className="overflow-hidden rounded-2xl border border-dashed border-border bg-muted/30">
+            <div className="grid aspect-[4/3] place-items-center bg-gradient-to-br from-muted via-card to-muted/70">
+              <div className="text-center">
+                <span className="mx-auto flex size-11 items-center justify-center rounded-full border border-border/70 bg-background/80 text-muted-foreground"><ImagePlus className="size-5" /></span>
+                <p className="mt-3 text-xs font-semibold">Slot foto {slot}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">Media belum ditambahkan</p>
+              </div>
+            </div>
+            <figcaption className="border-t border-border/50 px-3 py-2.5 text-[10px] leading-4 text-muted-foreground">{slot === 1 ? "Pemandangan gunung" : slot === 2 ? "Suasana jalur pendakian" : "Basecamp atau panorama puncak"}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  )
+}

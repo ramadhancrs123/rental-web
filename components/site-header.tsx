@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { title: "Katalog", href: "/katalog" },
   { title: "Tentang Kami", href: "/#tentang-kami" },
   { title: "Keunggulan", href: "/#keunggulan" },
-  { title: "Destinasi", href: "/#destinasi" },
+  { title: "Destinasi", href: "/destinasi" },
   { title: "Cara Menyewa", href: "/#cara-pesan" },
   { title: "Kontak", href: "/#kontak" },
 ]
