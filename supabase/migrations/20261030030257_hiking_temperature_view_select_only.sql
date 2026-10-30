@@ -1,0 +1,2 @@
+REVOKE ALL ON public.v_public_hiking_temperature_checkpoints FROM service_role;
+GRANT SELECT ON public.v_public_hiking_temperature_checkpoints TO service_role;

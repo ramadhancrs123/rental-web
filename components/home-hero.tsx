@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowDown, CalendarDays, Clock3, MoonStar, ShieldCheck, Sparkles, Sun, Tent } from "lucide-react"
+import { ArrowDown, MoonStar, Sparkles, Sun, Tent } from "lucide-react"
 import { useTheme } from "next-themes"
 import BookingNoticeDialog from "@/components/booking-notice-dialog"
 
@@ -38,8 +38,8 @@ export default function HomeHero() {
             Petualanganmu dimulai <span className="font-display font-normal text-orange-300 italic">dari sini.</span>
           </h1>
 
-          <p className="hero-enter hero-enter--3 mt-5 max-w-[640px] text-base leading-7 text-white/90 sm:text-lg sm:leading-8">
-            Sewa tenda dan perlengkapan outdoor untuk perjalananmu di alam. Pilih kebutuhan, tentukan tanggal, lalu ajukan booking dengan mudah.
+          <p className="hero-enter hero-enter--3 mt-5 hidden max-w-[620px] text-base leading-7 text-white/90 sm:block sm:text-lg sm:leading-8">
+            Sewa tenda dan perlengkapan untuk camping serta perjalanan alam. Pilih kebutuhan, tentukan tanggal, lalu ajukan booking.
           </p>
 
           <div className="hero-enter hero-enter--4 mt-6 flex flex-wrap items-center gap-3">
@@ -47,28 +47,10 @@ export default function HomeHero() {
             <Link href="/katalog" className="inline-flex h-12 items-center justify-center rounded-full border border-white/45 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:border-white/70 hover:bg-white/20 sm:h-13 sm:px-7">Jelajahi Katalog</Link>
           </div>
 
-          <div className="hero-enter hero-enter--5 mt-5 flex max-w-xl items-start gap-3 rounded-2xl border border-white/20 bg-slate-950/20 p-3.5 backdrop-blur-md sm:items-center sm:gap-4 sm:p-4">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-400/20 text-orange-200"><Clock3 className="size-5" /></span>
-            <div>
-              <p className="text-sm font-semibold text-white sm:text-base">Pengembalian lebih fleksibel</p>
-              <p className="mt-0.5 text-xs leading-5 text-white/80 sm:text-sm">Toleransi 10 jam setelah jadwal pengembalian, sesuai ketentuan rental.</p>
-            </div>
-          </div>
+
         </div>
 
-        <div className="hero-enter hero-enter--6 mt-7 grid max-w-[760px] grid-cols-3 gap-2.5 sm:mt-8 sm:gap-3">
-          {[
-            { icon: CalendarDays, title: "Booking online", subtitle: "Ajukan kapan saja" },
-            { icon: ShieldCheck, title: "Perlengkapan dicek", subtitle: "Lebih siap digunakan" },
-            { icon: MoonStar, title: "Siap berpetualang", subtitle: "Ambil sesuai konfirmasi" },
-          ].map((item) => (
-            <div key={item.title} className="hero-trust-card min-w-0 rounded-2xl border border-white/20 bg-slate-950/20 p-3 backdrop-blur-md sm:p-4">
-              <item.icon className="size-4 text-orange-200 sm:size-5" />
-              <p className="mt-2 text-[11px] leading-4 font-semibold text-white sm:text-sm">{item.title}</p>
-              <p className="mt-1 hidden text-xs leading-4 text-white/70 sm:block">{item.subtitle}</p>
-            </div>
-          ))}
-        </div>
+
       </div>
 
       <a href="#katalog-unggulan" className="hero-scroll-cue absolute right-5 bottom-5 hidden items-center gap-2 text-[10px] font-semibold tracking-[0.2em] text-white/75 uppercase transition hover:text-white lg:flex">

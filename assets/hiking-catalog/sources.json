@@ -1,0 +1,575 @@
+{
+  "schema_version": "1.0.0",
+  "sources": [
+    {
+      "id": "S01",
+      "name": "Taman Bumi Mooi Garoet",
+      "publisher": "Badan Geologi, Kementerian ESDM",
+      "published_at": "2023-08",
+      "url": "https://geologi.esdm.go.id/storage/publikasi/8MSVNh8DaLkfQIVNAVSE7OD9BtBPGRJUPc1A18OH.pdf",
+      "source_type": "official_geological_publication",
+      "used_for": [
+        "mountain elevation",
+        "volcanic landform and geology",
+        "historical route descriptions",
+        "route access and checkpoint profiles",
+        "historical climate context"
+      ],
+      "quality": "high_for_geology_and_2023_guide_content",
+      "limitations": "Not a current trail-operation notice. Trailhead facilities, fares, transport and route conditions in the 2023 publication may have changed. Copyrighted work; paraphrase facts and do not republish its maps or prose."
+    },
+    {
+      "id": "S02",
+      "name": "Perhutani KPH Garut–KTH Bakti Wilaku cooperation for Pemancar route",
+      "publisher": "Perum Perhutani",
+      "published_at": "2024-04-30",
+      "url": "https://www.perhutani.co.id/perhutani-garut-bersama-kth-bakti-wilaku-teken-pks-pendakian-gunung-cikuray-via-pamancar/",
+      "source_type": "official_land_manager_statement",
+      "used_for": [
+        "Pemancar route management partnership",
+        "Perhutani forest-management location"
+      ],
+      "quality": "high_for_historic_partnership",
+      "limitations": "Documents a partnership in 2024; does not establish that the agreement is still current or provide verified public contact/basecamp coordinates."
+    },
+    {
+      "id": "S03",
+      "name": "Perhutani recommends three official Cikuray routes",
+      "publisher": "Perum Perhutani; report credited to RRI",
+      "published_at": "2025-05-21",
+      "url": "https://www.perhutani.co.id/perhutani-rekomendasikan-tiga-jalur-resmi-pendakian-gunung-cikuray/",
+      "source_type": "official_land_manager_statement_republished_by_media",
+      "used_for": [
+        "Perhutani's named recommended routes: Pemancar, Cintanagara, Tapak Gerot",
+        "general management model and guard posts"
+      ],
+      "quality": "high_for_statement_at_publication_date",
+      "limitations": "Not a 2026 operational status update. It does not confirm that the three routes remain open today."
+    },
+    {
+      "id": "S04",
+      "name": "Perhutani extension of Tapak Gerot hiking cooperation",
+      "publisher": "Perum Perhutani",
+      "published_at": "2023-12-07",
+      "url": "https://www.perhutani.co.id/perhutani-tandatangani-perpanjangan-pks-wisata-pendakian-gunung-cikuray-di-garut/",
+      "source_type": "official_land_manager_statement",
+      "used_for": [
+        "historic Tapak Gerot route partnership",
+        "named local route manager at the time"
+      ],
+      "quality": "high_for_historic_partnership",
+      "limitations": "Historic agreement; operator, contact and present-day contract status require confirmation."
+    },
+    {
+      "id": "S05",
+      "name": "ASTACALA Bank Data and public usage guidance",
+      "publisher": "PMPA ASTACALA",
+      "published_at": "public archive; retrieval checked 2026-10-30",
+      "url": "https://astacala.org/bank-data",
+      "related_url": "https://astacala.org/panduan-publik/lengkap",
+      "source_type": "community_route_archive",
+      "used_for": [
+        "source GPX file",
+        "three recorded Cikuray tracks",
+        "20 original waypoint labels and coordinates"
+      ],
+      "quality": "high_for_archive_file_structure_and_track_record",
+      "limitations": "Archive records a particular trip/time and is not proof of current route access, route legality, trail opening or present ground conditions. Public guidance permits use for preparation/navigation with attribution; file-specific reuse review remains recorded as pending in the project's import workflow."
+    },
+    {
+      "id": "S06",
+      "name": "Gunung Cikuray Hiking Route Map",
+      "publisher": "Gunung Bagging / Indogs.ID",
+      "published_at": "edition 2020-2021",
+      "url": "https://www.gunungbagging.com/wp-content/maps/peta-jalur-pendakian-gunung-cikuray.pdf",
+      "source_type": "community_cartographic_reference",
+      "used_for": [
+        "cross-check of route labels",
+        "summit and trailhead map labels",
+        "checkpoint name/elevation comparison"
+      ],
+      "quality": "medium_for_historical_cartographic_reference",
+      "limitations": "Map itself warns that a drawn trail does not mean public access is permitted and advises contacting local authorities. Base map credits BIG 2015-2019. Do not copy/re-publish the map or treat it as current operational authorization."
+    },
+    {
+      "id": "S07",
+      "name": "Cikuray via Cintanagara reopened",
+      "publisher": "Mounture.com",
+      "published_at": "2026-10-02",
+      "url": "https://mounture.com/berita/gunung-cikuray-via-cintanagara-resmi-dibuka-ini-jam-tektok-dan-camping/",
+      "source_type": "secondary_operational_status_report",
+      "used_for": [
+        "reported Cintanagara reopening on 2026-10-02"
+      ],
+      "quality": "medium",
+      "limitations": "Media report, not a direct current operator feed. Reconfirm before treating as open."
+    },
+    {
+      "id": "S08",
+      "name": "Cikuray via Pemancar reopened",
+      "publisher": "Mounture.com",
+      "published_at": "2026-10-04",
+      "url": "https://mounture.com/berita/gunung-cikuray-via-pemancar-kembali-dibuka-pendaki-wajib-perhatikan-hal-ini/",
+      "source_type": "secondary_operational_status_report",
+      "used_for": [
+        "reported Pemancar reopening on 2026-10-04",
+        "contact candidate reported in the article"
+      ],
+      "quality": "medium",
+      "limitations": "Media report, not a direct current operator feed. Contact and operational hours are not accepted as canonical without direct re-verification."
+    },
+    {
+      "id": "S09",
+      "name": "Tapak Gerot still closed, reported announcement by Garut local government",
+      "publisher": "Radar Garut",
+      "published_at": "2026-10-19",
+      "url": "https://radargarut.id/2026/10/19/jalur-pendakian-gunung-cikuray-via-tapak-gerot-masih-ditutup-pemkab-garut-imbau-pendaki-patuhi-aturan/",
+      "source_type": "secondary_report_of_government_announcement",
+      "used_for": [
+        "reported Tapak Gerot closure as of 2026-10-19"
+      ],
+      "quality": "medium",
+      "limitations": "The article attributes the announcement to Pemkab Garut, but the primary government notice was not independently located during this pilot. Do not represent it as direct official confirmation."
+    },
+    {
+      "id": "S10",
+      "name": "Gunung Cikuray destination profile",
+      "publisher": "Indonesia Travel",
+      "published_at": "current page; retrieved 2026-10-30",
+      "url": "https://www.indonesia.travel/id/id/destination/java/west-java/gunung-cikuray",
+      "source_type": "national_tourism_portal",
+      "used_for": [
+        "supporting general destination description",
+        "cross-check of elevation and stratovolcano label"
+      ],
+      "quality": "medium_supporting_source",
+      "limitations": "Supporting destination content; route status, SIMAKSI fees and facility information require direct manager confirmation."
+    },
+    {
+      "id": "S11",
+      "name": "Cerita Pendakian Gunung Cikuray via Pemancar",
+      "publisher": "CeritaPendaki / Indra Gumilar",
+      "published_at": "2025-03-25; trip described by author as 2019",
+      "url": "https://ceritapendaki.id/gunung-cikuray-garut-via-pemancar/",
+      "source_type": "individual_trip_report",
+      "used_for": [
+        "historical user-experience notes",
+        "candidate basecamp coordinate/contact",
+        "older Pos 1 water/warung and camping observations"
+      ],
+      "quality": "low_to_medium_historical_field_report",
+      "limitations": "The author's trip occurred in 2019; contacts, fees, water access, facilities and conditions are not current verification. Contact and location candidates are retained as unverified and conflicting."
+    },
+    {
+      "id": "S12",
+      "name": "Gubernur Jawa Barat instruksikan penutupan sementara aktivitas pendakian",
+      "publisher": "Pemerintah Provinsi Jawa Barat — Humas Jabar",
+      "published_at": "2026-08-31",
+      "url": "https://jabarprov.go.id/berita/kdm-cegah-kebakaran-lahan-dan-hutan-gunung-ditutup-sementara-untuk-pendakian-25362",
+      "source_type": "official_provincial_government_communication",
+      "used_for": [
+        "official communication that the Governor instructed mountain areas in West Java to temporarily close hiking during dry-season fire risk"
+      ],
+      "quality": "high_for_government_instruction_at_publication_date",
+      "limitations": "This is the provincial government's press release describing the Governor's instruction. The signed Circular Letter PDF was not independently retrieved in this pilot. A later revocation or route-specific written exception was not located by 2026-10-30."
+    },
+    {
+      "id": "S13",
+      "name": "Surat Edaran Gubernur Jabar Nomor 116/KH.02.04.03/ASDA EKBANG",
+      "publisher": "DetikJabar reporting the Governor's signed circular",
+      "published_at": "2026-09-01",
+      "url": "https://www.detik.com/jabar/berita/d-8643141/dedi-mulyadi-larang-pendakian-gunung-di-jabar-saat-kemarau",
+      "source_type": "secondary_report_quoting_governor_circular",
+      "used_for": [
+        "circular number and date",
+        "reported scope prohibiting all mountain/forest hiking in West Java during dry season",
+        "listed addressees: Perhutani Divre Jabar-Banten, BBKSDA Jabar, and regents/mayors"
+      ],
+      "quality": "medium_high_for_reported_circular_text",
+      "limitations": "Secondary media report quoting the Governor's signed circular; retain a copy of the signed circular and any revocation/exception as the preferred primary evidence."
+    },
+    {
+      "id": "S14",
+      "name": "Perhutani KPH Garut reminds local forest groups of the West Java hiking ban",
+      "publisher": "Mounture.com reporting Perhutani KPH Garut letter No. 0305/058.4/GRT/2026",
+      "published_at": "2026-09-02",
+      "url": "https://mounture.com/berita/perhutani-ingatkan-larangan-pendakian-gunung-di-jawa-barat-selama-musim-kemarau/",
+      "source_type": "secondary_report_of_land_manager_follow_up",
+      "used_for": [
+        "corroboration that Perhutani KPH Garut disseminated the provincial dry-season hiking restriction"
+      ],
+      "quality": "medium",
+      "limitations": "The reported letter was addressed to two local LMDH groups, not specifically the Cikuray operators. It corroborates regional implementation but does not replace a route-specific written status."
+    },
+    {
+      "id": "S15",
+      "name": "Prosedur Tetap Pendakian Gunung Ciremai",
+      "publisher": "Balai Taman Nasional Gunung Ciremai",
+      "published_at": "2019-06",
+      "url": "https://tngciremai.menlhk.go.id/wp-content/uploads/2020/08/Protap-Pendakian-TNGC_Final.pdf",
+      "source_type": "official_national_park_procedure",
+      "used_for": [
+        "four documented general entrances: Linggajati, Linggasana, Palutungan, Apuy",
+        "park procedures and safety process"
+      ],
+      "quality": "high_for_route_names_at_publication_date",
+      "limitations": "2019 procedure; not current quota, fee or opening confirmation."
+    },
+    {
+      "id": "S16",
+      "name": "Peta Pendakian Taman Nasional Gunung Gede Pangrango",
+      "publisher": "Balai Besar Taman Nasional Gunung Gede Pangrango",
+      "published_at": "legacy map; retrieved 2026-10-30",
+      "url": "https://gedepangrango.org/booking.gedepangrango.org/asset-booking/peta-pendakian-tnggp.pdf",
+      "source_type": "official_national_park_trekking_map",
+      "used_for": [
+        "Cibodas/Mandalawangi, Gunung Putri and Selabintana routes",
+        "named trail landmarks, shelters, water-source labels"
+      ],
+      "quality": "high_for_historical_official_map_labels",
+      "limitations": "Legacy map; current route alignment, water and facility status require park confirmation. Elevation values excluded from this dataset."
+    },
+    {
+      "id": "S17",
+      "name": "Gunung Gede Pangrango destination route overview",
+      "publisher": "Indonesia Travel / Kementerian Pariwisata",
+      "published_at": "current page; retrieved 2026-10-30",
+      "url": "https://www.indonesia.travel/id/id/destination/java/west-java/gunung-gede-pangrango",
+      "source_type": "national_tourism_portal",
+      "used_for": [
+        "cross-check of Cibodas, Gunung Putri and Selabintana access names"
+      ],
+      "quality": "medium_supporting_source",
+      "limitations": "Park is authoritative for current access and permit rules."
+    },
+    {
+      "id": "S18",
+      "name": "Gunung Papandayan: Daya Tarik dan Jalur Pendakian",
+      "publisher": "Indonesia Travel / Kementerian Pariwisata",
+      "published_at": "current page; retrieved 2026-10-30",
+      "url": "https://www.indonesia.travel/id/id/destination/java/west-java/gunung-papandayan",
+      "source_type": "national_tourism_portal",
+      "used_for": [
+        "visitor sequence: gate, parking, safety post, crater, junction, Ghober Hoet, Pondok Saladah",
+        "camping/rest area description for Pondok Saladah"
+      ],
+      "quality": "medium_high_for_published_visitor_route_description",
+      "limitations": "Not a current operator bulletin. Facilities and exact trail alignment need operator confirmation."
+    },
+    {
+      "id": "S19",
+      "name": "Polsek Cisurupan Intensifkan Monitoring Wisata Papandayan",
+      "publisher": "Pemerintah Kabupaten Garut",
+      "published_at": "2026-01-02",
+      "url": "https://www.garutkab.go.id/berita-skpd/polsek-cisurupan-intensifkan-monitoring-wisata-papandayan",
+      "source_type": "official_local_government_activity_report",
+      "used_for": [
+        "TWA Papandayan hiking and camping visitor activity on 2026-01-01"
+      ],
+      "quality": "high_for_activity_at_reported_date",
+      "limitations": "Does not establish access status after the August 2026 provincial restriction."
+    },
+    {
+      "id": "S20",
+      "name": "Gunung Burangrang: Pilihan Empat Jalur Pendakian",
+      "publisher": "Perum Perhutani (article credits Detik.com, 2024-05-15)",
+      "published_at": "2024-05-15",
+      "url": "https://www.perhutani.co.id/gunung-burangrang-tiket-jam-buka-dan-pilihan-4-jalur-pendakian/",
+      "source_type": "state_forest_enterprise_published_route_guide",
+      "used_for": [
+        "Pangheotan, Tanjakan Mentari, Legok Haji and Komando route names",
+        "reported access approach and post/shelter notes"
+      ],
+      "quality": "high_for_route_names_at_publication_date",
+      "limitations": "2024 guide; current access, permission, operator and basecamp details require direct confirmation."
+    },
+    {
+      "id": "S21",
+      "name": "Portal Resmi Balai Taman Nasional Gunung Halimun Salak",
+      "publisher": "Balai Taman Nasional Gunung Halimun Salak",
+      "published_at": "current portal; retrieved 2026-10-30",
+      "url": "https://tnhalimunsalak.ksdae.kehutanan.go.id/",
+      "source_type": "official_national_park_portal_and_gis",
+      "used_for": [
+        "TNGHS management context",
+        "official GIS points for Salak hiking gates",
+        "temporary closure notice from 2026-09-02 for all four Salak entrances and Kawah Ratu tracking"
+      ],
+      "quality": "high_for_portal_gis_and_published_closure_notice",
+      "limitations": "TNGHS spans West Java and Banten. Gate points are not necessarily basecamp buildings. Portal notice says until further notice."
+    },
+    {
+      "id": "S22",
+      "name": "Perhutani Galunggung — visitor information",
+      "publisher": "Perum Perhutani / Econique",
+      "published_at": "current page; retrieved 2026-10-30",
+      "url": "https://www.perhutani.co.id/product/galunggung/",
+      "source_type": "state_forest_enterprise_destination_page",
+      "used_for": [
+        "managed Galunggung crater visitor area and stairway access",
+        "camping and visitor-area facilities"
+      ],
+      "quality": "high_for_operator_described_visitor_facilities",
+      "limitations": "Visitor stair access is not a multi-day summit hiking route. Do not map unrelated ASTACALA tracks to the crater stairs."
+    },
+    {
+      "id": "S23",
+      "name": "Wisata Jayagiri: Hiking ke Gunung Tangkuban Parahu",
+      "publisher": "Perum Perhutani (article republication; 2016)",
+      "published_at": "2016-05-02",
+      "url": "https://www.perhutani.co.id/wisata-jayagiri-tempat-berkemah-dan-hiking-gunung-tangkuban-parahu/",
+      "source_type": "state_forest_enterprise_historical_access_guide",
+      "used_for": [
+        "Jayagiri as forest recreation/hiking area historically used for hiking toward Tangkuban Parahu",
+        "junction directions from the Jayagiri gate"
+      ],
+      "quality": "medium_historical_access_reference",
+      "limitations": "2016 article, not proof of current summit access permission."
+    },
+    {
+      "id": "S24",
+      "name": "Wana Wisata Batu Kuda di Lereng Gunung Manglayang",
+      "publisher": "Perum Perhutani KPH Bandung Utara",
+      "published_at": "2016-07-13",
+      "url": "https://www.perhutani.co.id/yuk-selfie-wisata-batu-kuda-perhutani-bandung-utara/",
+      "source_type": "state_forest_enterprise_destination_description",
+      "used_for": [
+        "Batu Kuda as a forest recreation/camping/hiking area on Manglayang slope",
+        "administrative location Cibiru Wetan, Cileunyi, Bandung"
+      ],
+      "quality": "high_for_site_identity_at_publication_date",
+      "limitations": "Confirms recreation site, not an official/current summit route."
+    },
+    {
+      "id": "S25",
+      "name": "Gunung Puntang — Pendakian Puncak Mega",
+      "publisher": "Perum Perhutani",
+      "published_at": "current page; retrieved 2026-10-30",
+      "url": "https://www.perhutani.co.id/gunung-puntang-di-mana-berapa-mdpl-apakah-cocok-bagi-pemula/",
+      "source_type": "state_forest_enterprise_route_guide",
+      "used_for": [
+        "Puncak Mega as named route destination in the Malabar complex",
+        "five-Pos route outline"
+      ],
+      "quality": "high_for_operator_route_outline",
+      "limitations": "Describes Puncak Mega/Gunung Puntang, not necessarily the separate Puncak Puntang database entry or GPX waypoint."
+    },
+    {
+      "id": "S26",
+      "name": "Gunung Malabar Hiking Route Map, Edition 2020.1",
+      "publisher": "Indogis.ID with Gunung Bagging; supported by Tjiasmanto Conservation Fund",
+      "published_at": "2020-01 edition",
+      "url": "https://www.gunungbagging.com/wp-content/maps/peta-jalur-pendakian-gunung-malabar.pdf",
+      "source_type": "community_cartographic_reference",
+      "used_for": [
+        "Cimaung trailhead, Cinyiruan, Puncak Mega, Puntang summit, Haruman summit and Puncak Besar map labels",
+        "map legend's official/unofficial route-line distinction"
+      ],
+      "quality": "medium_for_historical_cartographic_reference",
+      "limitations": "Map explicitly warns that route lines do not guarantee public access; seek authority/landowner permission. Do not republish the map."
+    },
+    {
+      "id": "S27",
+      "name": "Gunung Puncak Besar Malabar dan jalur Kampung Cinyiruan",
+      "publisher": "BandungBergerak",
+      "published_at": "2021",
+      "url": "https://bandungbergerak.id/article/detail/1737/gunung-gunung-di-bandung-raya-10-gunung-puncak-besar-yang-tertinggi-di-pegunungan-malabar",
+      "source_type": "local_reporting_and_field_description",
+      "used_for": [
+        "Cinyiruan as a documented approach/basecamp area to Puncak Besar",
+        "Datar Peda as a named rest/camp area"
+      ],
+      "quality": "medium_supporting_field_report",
+      "limitations": "Historical reporting, not current land-manager authorization or direct operator confirmation."
+    },
+    {
+      "id": "S28",
+      "name": "Perhutani Kawah Putih",
+      "publisher": "Perum Perhutani",
+      "published_at": "current destination page; retrieved 2026-10-30",
+      "url": "https://www.perhutani.co.id/product/kawah-putih/",
+      "source_type": "state_forest_enterprise_destination_page",
+      "used_for": [
+        "Kawah Putih as managed visitor destination formed by Patuha volcanic complex",
+        "visitor attraction and site context"
+      ],
+      "quality": "high_for_destination_identity",
+      "limitations": "Does not establish an authorized summit-hiking route to Patuha."
+    },
+    {
+      "id": "S29",
+      "name": "Gunung Ciremai: Daya Tarik dan Jalur Pendakian",
+      "publisher": "Indonesia Travel / Kementerian Pariwisata",
+      "published_at": "current page; retrieved 2026-10-30",
+      "url": "https://www.indonesia.travel/id/id/destination/java/west-java/gunung-ciremai",
+      "source_type": "national_tourism_portal",
+      "used_for": [
+        "supporting route names Linggarjati, Palutungan, Apuy and Sadarehe"
+      ],
+      "quality": "medium_supporting_route_source",
+      "limitations": "Use TNGC procedure for official access management; Sadarehe is not asserted as an official TNGC gate based on this page alone."
+    },
+    {
+      "id": "S30",
+      "name": "Pegunungan Galunggung — Hiking Route Map, Edition 2020.1",
+      "publisher": "Indogis.ID / Gunung Bagging; Tjiasmanto Conservation Fund",
+      "published_at": "2020-01 edition",
+      "url": "https://www.gunungbagging.com/wp-content/maps/peta-jalur-pendakian-pegunungan-galunggung.pdf",
+      "source_type": "community_cartographic_route_reference",
+      "used_for": [
+        "Sagara village registration and Puncak Sagara",
+        "Talaga Bodas trailhead and Beuticanar/Gunung Canar",
+        "Tonyong Panyang/Cidugaleun and Puncak Dindingari",
+        "map legend and land-access warning"
+      ],
+      "quality": "medium_high_for_historical_route_identity_and_waypoint_names",
+      "limitations": "Map edition 2020.1; map expressly warns that depicted routes do not guarantee public access and permission must be confirmed with authorities and landowners. It is not a current operational notice."
+    },
+    {
+      "id": "S31",
+      "name": "Gunung Rakutak, Cabe Rawit-nya Jawa Barat dengan Trek Menantang",
+      "publisher": "Mounture.com",
+      "published_at": "2026-02-10",
+      "url": "https://mounture.com/catatan-perjalanan/gunung-rakutak-cabe-rawit-nya-jawa-barat-dengan-trek-menantang/",
+      "source_type": "secondary_route_and_operator_report",
+      "used_for": [
+        "reported approach routes Sukarame, Pacet and Majalaya",
+        "reported Himpala Rakutak registration/basecamp"
+      ],
+      "quality": "medium_secondary_report",
+      "limitations": "Not a direct notice from the conservation authority or operator. Treat route designation and registration details as reported by media; current contact, access permission and operation require written confirmation."
+    },
+    {
+      "id": "S32",
+      "name": "Gunung Rakutak: Semeru-nya Jawa Barat dengan trek menantang dan Danau Ciharus",
+      "publisher": "Mounture.com",
+      "published_at": "2025-10-19",
+      "url": "https://mounture.com/catatan-perjalanan/gunung-rakutak-semeru-nya-jawa-barat-dengan-trek-menantang-dan-pesona-danau-ciharus/",
+      "source_type": "secondary_route_and_safety_report",
+      "used_for": [
+        "cross-reference of Sukarame, Pacet and Majalaya access names",
+        "Himpala Rakutak registration reference",
+        "historical terrain and water scarcity notes"
+      ],
+      "quality": "medium_secondary_report",
+      "limitations": "Media report; not a current land-manager authorization or current facility inventory. Do not reuse time/elevation claims as calculation inputs."
+    },
+    {
+      "id": "S33",
+      "name": "Pendakian Gunung Bukit Tunggul via Taman Bincarung",
+      "publisher": "AyoBandung.id / Reporter Rio Praja",
+      "published_at": "2026-08-17",
+      "url": "https://www.ayobandung.id/ayo-netizen/01176928/17082026/pendakian-gunung-bukit-tunggul-via-taman-bincarung-trek-pendakian-lokasi-dan-harga-tiket/amp",
+      "source_type": "community_contributed_local_route_report",
+      "used_for": [
+        "reported Pasir Angling/Taman Bincarung approach",
+        "reported alternate route via Kina plantation in Cipajalu"
+      ],
+      "quality": "medium_local_report",
+      "limitations": "Community-contributed report, not an official forest manager notice. Access, ticketing, opening hours, hazards and current permission must be reconfirmed with the land manager."
+    },
+    {
+      "id": "S34",
+      "name": "Gunung Patuha — Hiking Route Map, Edition 2020.1",
+      "publisher": "Indogis.ID / Gunung Bagging; Tjiasmanto Conservation Fund",
+      "published_at": "2020-01 edition",
+      "url": "https://www.gunungbagging.com/wp-content/maps/peta-jalur-pendakian-gunung-patuha.pdf",
+      "source_type": "community_cartographic_route_reference",
+      "used_for": [
+        "Cipanganten mapped approach",
+        "Kawah Putih entrance and Patuha trail",
+        "Sunan Ibu sunrise, Kawah Saat junction, crater rim and summit labels",
+        "map legend distinguishing official and unofficial route lines"
+      ],
+      "quality": "medium_high_for_historical_route_and_checkpoint_identity",
+      "limitations": "Map edition 2020.1; it explicitly warns that mapped routes do not guarantee public access. It labels the Cipanganten line unofficial on that edition; present status requires written land-manager confirmation."
+    },
+    {
+      "id": "S35",
+      "name": "Jalur Pendakian Gunung Patuha via Cipanganten — field walkthrough",
+      "publisher": "Ini Bandung",
+      "published_at": "2024-07-28",
+      "url": "https://www.youtube.com/watch?v=4GPyGSGUzC8",
+      "source_type": "firsthand_route_video_and_field_walkthrough",
+      "used_for": [
+        "Cipanganten starting gate and basecamp context",
+        "reported branching between new and old route",
+        "reported plantation ticket post, two warung points and camp area"
+      ],
+      "quality": "medium_firsthand_field_report",
+      "limitations": "Video description calls the route recently official, but it is not a land-manager document. This conflicts with the 2020 map's unofficial-route legend; preserve the discrepancy and do not label the route currently open."
+    },
+    {
+      "id": "S36",
+      "name": "Conquering Mount Malabar via Cinyiruan — route review and GPS track",
+      "publisher": "INI GUNUNG",
+      "published_at": "2024-11-07",
+      "url": "https://www.youtube.com/watch?v=aklEN6aTHVM",
+      "source_type": "firsthand_route_video_and_gps_walkthrough",
+      "used_for": [
+        "Cinyiruan basecamp approach",
+        "waypoints including Dutch Cemetery, saung, trail junction, Abah stall, Datar Peda, Pos 3 and Puncak Besar",
+        "historical public basecamp contact candidate"
+      ],
+      "quality": "medium_firsthand_field_report",
+      "limitations": "Field trip and contact details are from 2024 and are not current operator verification. Contact must not be treated as canonical without a direct check."
+    },
+    {
+      "id": "S37",
+      "name": "Fenomena blue fire di Kawah Manuk Gunungapi Papandayan, 23–25 September 2026",
+      "publisher": "Badan Geologi / PVMBG",
+      "published_at": "2026-09-26",
+      "url": "https://geologi.esdm.go.id/media-center/fenomena-blue-fire-di-kawah-manuk-gunungapi-papandayan-23-25-september-2026",
+      "source_type": "official_volcano_monitoring_communication",
+      "used_for": [
+        "recent official monitoring communication concerning Kawah Manuk during 23–25 Sep 2026"
+      ],
+      "quality": "high_for_official_monitoring_communication",
+      "limitations": "The source page could not be fully opened during this pass; the official search result/title identifies the event period. This is not a current hiking permit or operational-status notice; consult current MAGMA/PVMBG information."
+    },
+    {
+      "id": "S38",
+      "name": "Blue Fire Hilang, Jalur Pendakian Gunung Papandayan Kembali Dibuka",
+      "publisher": "ANTARA News, quoting BBKSDA Jawa Barat and TWA Papandayan management",
+      "published_at": "2026-10-11",
+      "url": "https://www.antaranews.com/berita/5780745/blue-fire-hilang-jalur-pendakian-gunung-papandayan-kembali-dibuka",
+      "source_type": "news_report_quoting_competent_conservation_authority_and_site_operator",
+      "used_for": [
+        "BBKSDA Conservation Area V officer confirmed the TWA Papandayan hiking route had reopened under monitoring after the Kawah Manuk blue-fire phenomenon disappeared",
+        "visitor guidance: pass through crater area without lingering",
+        "camping at Pondok Saladah remained restricted due wildfire prevention"
+      ],
+      "quality": "high_for_authority_statement_as_quoted_by_ANTARA",
+      "limitations": "ANTARA quotes the BBKSDA official and the TWA operational manager. The statement is dated 11 Oct 2026 and does not guarantee that access rules remain unchanged after that date; check subsequent BBKSDA/TWA notices."
+    },
+    {
+      "id": "S39",
+      "name": "TNGC closes all Mount Ciremai hiking routes to prevent forest fire",
+      "publisher": "DetikJabar, reporting TNGC notice PG.20/T.33/TU/KSA.02.02/B/08/2026",
+      "published_at": "2026-09-01",
+      "url": "https://www.detik.com/jabar/cirebon-raya/d-8643578/cegah-karhutla-tngc-tutup-total-pendakian-gunung-ciremai",
+      "source_type": "secondary_report_of_signed_national_park_closure_notice",
+      "used_for": [
+        "TNGC letter number PG.20/T.33/TU/KSA.02.02/B/08/2026",
+        "all summit hiking routes closed from 6 Sep 2026 until wildfire risk is declared safe",
+        "online booking stopped from 1 Sep 2026"
+      ],
+      "quality": "medium_high_for_reported_official_park_order",
+      "limitations": "The article quotes the signed TNGC announcement but the direct official announcement attachment could not be retrieved in this pass. Preserve the report's attribution and recheck the park's latest written update."
+    },
+    {
+      "id": "S40",
+      "name": "Kemenhut confirms temporary TNGGP hiking closure after Suryakencana fire",
+      "publisher": "Ministry of Forestry / official press release",
+      "published_at": "2026-08-07",
+      "url": "https://www.kehutanan.go.id/news/kementerian-kehutanan-bergerak-cepat-tangani-kebakaran-di-tnggp-dan-tutup-sementara-pendakian",
+      "source_type": "official_ministry_press_release",
+      "used_for": [
+        "BBTNGGP Circular SE.18/2026 and temporary closure of all official entry gates from 7 to 11 Aug 2026 after the Alun-Alun Barat Suryakencana fire"
+      ],
+      "quality": "high_for_exact_historical_closure_dates",
+      "limitations": "This notice only establishes the 7–11 Aug 2026 emergency closure. It does not by itself establish whether TNGGP is open or closed on 30 Oct 2026. Later access must be checked in the official booking system/current park notices."
+    }
+  ],
+  "research_updated_at": "2026-10-30"
+}

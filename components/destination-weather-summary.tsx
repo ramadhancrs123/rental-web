@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react"
 import { AlertCircle, CloudSun, Droplets, RefreshCw, Wind } from "lucide-react"
-import { type HikingWeatherResponse, requestSourceHikingWeather } from "@/lib/hiking"
+import { type HikingWeatherResponse, requestHikingWeather } from "@/lib/hiking"
 
-type Props = { sourceSlug: string; destinationName: string; adm4?: string | null; compact?: boolean; lazy?: boolean }
+type Props = { mountainSlug: string; destinationName: string; compact?: boolean; lazy?: boolean }
 type ForecastPeriod = Record<string, unknown>
 
 function getPeriods(data: HikingWeatherResponse): ForecastPeriod[] {
@@ -36,12 +36,12 @@ function periodLabel(value: unknown) {
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("id-ID", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }).format(date)
 }
 
-export default function DestinationWeatherSummary({ sourceSlug, destinationName, adm4, compact = false, lazy = false }: Props) {
+export default function DestinationWeatherSummary({ mountainSlug, destinationName, compact = false, lazy = false }: Props) {
   const [resultState, setResultState] = useState<{ key: string; data: HikingWeatherResponse | null; error: boolean } | null>(null)
   const [retry, setRetry] = useState(0)
   const [isVisible, setIsVisible] = useState(!lazy)
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const requestKey = sourceSlug + ":" + (adm4 ?? "") + ":" + retry
+  const requestKey = mountainSlug + ":" + retry
   const loading = isVisible && resultState?.key !== requestKey
   const data = loading || !isVisible ? null : resultState?.key === requestKey ? resultState.data : null
   const error = isVisible && resultState?.key === requestKey && resultState.error
@@ -62,11 +62,11 @@ export default function DestinationWeatherSummary({ sourceSlug, destinationName,
   useEffect(() => {
     if (!isVisible) return
     const controller = new AbortController()
-    requestSourceHikingWeather(adm4 ? { adm4 } : { mountainSlug: sourceSlug }, controller.signal)
+    requestHikingWeather({ mountain: mountainSlug }, controller.signal)
       .then((result) => { if (!controller.signal.aborted) setResultState({ key: requestKey, data: result, error: false }) })
       .catch(() => { if (!controller.signal.aborted) setResultState({ key: requestKey, data: null, error: true }) })
     return () => controller.abort()
-  }, [sourceSlug, adm4, retry, requestKey, isVisible])
+  }, [mountainSlug, retry, requestKey, isVisible])
 
   const periods = data ? getPeriods(data) : []
   const current = periods[0]
@@ -80,7 +80,7 @@ export default function DestinationWeatherSummary({ sourceSlug, destinationName,
       <div ref={containerRef} className="min-h-[43px] border-t border-border/50 px-4 py-2.5" aria-live="polite">
         <div className="flex items-center gap-2.5">
           <CloudSun className="size-3.5 shrink-0 text-sky-600 dark:text-sky-300" />
-          {!isVisible ? <p className="text-[10px] text-muted-foreground">Ringkasan cuaca dimuat saat kartu terlihat.</p> : loading ? <p className="text-[10px] text-muted-foreground">Memuat prakiraan BMKG…</p> : error || !current ? (
+          {!isVisible ? <p className="text-[10px] text-muted-foreground">Memuat prakiraan cuaca…</p> : loading ? <p className="text-[10px] text-muted-foreground">Memuat prakiraan BMKG…</p> : error || !current ? (
             <div className="flex min-w-0 flex-1 items-center justify-between gap-2"><p className="truncate text-[10px] text-muted-foreground">Cuaca belum tersedia</p><button type="button" onClick={() => setRetry((value) => value + 1)} className="shrink-0 text-[10px] font-semibold text-primary">Coba lagi</button></div>
           ) : (
             <div className="flex min-w-0 flex-1 items-center justify-between gap-2"><div className="min-w-0"><p className="truncate text-[10px] font-medium text-muted-foreground">{typeof current.weather_desc === "string" ? current.weather_desc : "Prakiraan tersedia"} · {periodLabel(time)}</p><p className="mt-0.5 text-xs font-semibold">{temperature === null ? "Suhu tidak tersedia" : temperature + "°C"} <span className="font-normal text-muted-foreground">· wilayah {data?.location.village}</span></p></div><span className="rounded-full bg-sky-500/10 px-2 py-1 text-[9px] font-semibold text-sky-700 dark:text-sky-300">BMKG</span></div>
@@ -97,7 +97,7 @@ export default function DestinationWeatherSummary({ sourceSlug, destinationName,
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold">Cuaca wilayah · {destinationName}</h3><span className="rounded-full bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold text-sky-700 dark:text-sky-300">BMKG</span></div>
           {loading ? <p className="mt-2 text-xs text-muted-foreground">Mengambil ringkasan prakiraan…</p> : error || !current ? (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><AlertCircle className="size-3.5 shrink-0" /><span>Ringkasan cuaca belum tersedia. Data tidak diganti dengan perkiraan buatan.</span><button type="button" onClick={() => setRetry((value) => value + 1)} className="inline-flex items-center gap-1 font-semibold text-primary"><RefreshCw className="size-3" /> Coba lagi</button></div>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><AlertCircle className="size-3.5 shrink-0" /><span>Ringkasan cuaca belum tersedia saat ini.</span><button type="button" onClick={() => setRetry((value) => value + 1)} className="inline-flex items-center gap-1 font-semibold text-primary"><RefreshCw className="size-3" /> Coba lagi</button></div>
           ) : (
             <>
               <p className="mt-1 text-[11px] leading-5 text-muted-foreground">{data?.location.village}{data?.location.district ? ", " + data.location.district : ""} · {periodLabel(time)}</p>

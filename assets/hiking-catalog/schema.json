@@ -1,0 +1,533 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:akasha:hiking-catalog:dataset:1.0.0",
+  "title": "Hiking Catalog Dataset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "research_date",
+    "status",
+    "publishable",
+    "mountain",
+    "routes",
+    "source_tracks",
+    "checkpoints",
+    "basecamps",
+    "facilities",
+    "safety",
+    "data_quality"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "research_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "locale": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "pilot_research_complete_reviewable",
+        "reviewed",
+        "approved_for_import",
+        "published"
+      ]
+    },
+    "publishable": {
+      "type": "boolean"
+    },
+    "mountain": {
+      "type": "object",
+      "required": [
+        "slug",
+        "name",
+        "aliases",
+        "administrative_area",
+        "elevation",
+        "summit_location",
+        "geology",
+        "editorial",
+        "claims"
+      ],
+      "properties": {
+        "slug": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "administrative_area": {
+          "type": "object",
+          "required": [
+            "province",
+            "regency"
+          ],
+          "properties": {
+            "province": {
+              "type": "string"
+            },
+            "regency": {
+              "type": "string"
+            }
+          }
+        },
+        "elevation": {
+          "type": "object",
+          "required": [
+            "value_m",
+            "verification",
+            "source_ids"
+          ],
+          "properties": {
+            "value_m": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "verification": {
+              "type": "string"
+            },
+            "source_ids": {
+              "$ref": "#/$defs/sourceIds"
+            }
+          }
+        },
+        "summit_location": {
+          "type": "object",
+          "required": [
+            "latitude",
+            "longitude",
+            "source_ids",
+            "verification"
+          ],
+          "properties": {
+            "latitude": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "longitude": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "source_ids": {
+              "$ref": "#/$defs/sourceIds"
+            }
+          }
+        },
+        "geology": {
+          "type": "object",
+          "required": [
+            "landform_type",
+            "summary",
+            "current_volcanic_status",
+            "source_ids"
+          ],
+          "properties": {
+            "landform_type": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "string"
+            },
+            "current_volcanic_status": {
+              "type": "string"
+            },
+            "source_ids": {
+              "$ref": "#/$defs/sourceIds"
+            }
+          }
+        },
+        "editorial": {
+          "type": "object",
+          "required": [
+            "short_description",
+            "overview",
+            "route_context",
+            "safety_note",
+            "source_ids"
+          ],
+          "properties": {
+            "short_description": {
+              "type": "string",
+              "minLength": 20
+            },
+            "overview": {
+              "type": "string",
+              "minLength": 20
+            },
+            "route_context": {
+              "type": "string",
+              "minLength": 20
+            },
+            "safety_note": {
+              "type": "string",
+              "minLength": 20
+            },
+            "source_ids": {
+              "$ref": "#/$defs/sourceIds"
+            }
+          }
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "field",
+              "value",
+              "status",
+              "source_ids"
+            ],
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "source_ids": {
+                "$ref": "#/$defs/sourceIds"
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "names",
+          "manager_recognition",
+          "operational_status",
+          "source_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "names": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "manager_recognition": {
+            "type": "object",
+            "required": [
+              "status",
+              "source_ids"
+            ],
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "source_ids": {
+                "$ref": "#/$defs/sourceIds"
+              }
+            }
+          },
+          "operational_status": {
+            "type": "object",
+            "required": [
+              "status",
+              "legal_basis",
+              "operator_confirmation",
+              "reconfirm_before_departure"
+            ],
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "legal_basis": {
+                "type": "object",
+                "required": [
+                  "instrument",
+                  "scope",
+                  "source_ids"
+                ]
+              },
+              "operator_confirmation": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "required_before_publishing_open_status"
+                ]
+              },
+              "reconfirm_before_departure": {
+                "type": "boolean"
+              }
+            }
+          },
+          "source_ids": {
+            "$ref": "#/$defs/sourceIds"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "source_tracks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "source_track_name",
+          "recorded_track_length_m",
+          "trackpoint_count",
+          "source_asset",
+          "source_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source_track_name": {
+            "type": "string"
+          },
+          "recorded_track_length_m": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "trackpoint_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "source_asset": {
+            "type": "string"
+          },
+          "source_ids": {
+            "$ref": "#/$defs/sourceIds"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "checkpoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "source_index",
+          "source_name",
+          "location",
+          "elevation_quality",
+          "source_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source_index": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "source_name": {
+            "type": "string"
+          },
+          "location": {
+            "type": "object",
+            "required": [
+              "latitude",
+              "longitude"
+            ],
+            "properties": {
+              "latitude": {
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90
+              },
+              "longitude": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180
+              }
+            }
+          },
+          "elevation_quality": {
+            "type": "string"
+          },
+          "source_ids": {
+            "$ref": "#/$defs/sourceIds"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "basecamps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "verification",
+          "source_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "verification": {
+            "type": "string"
+          },
+          "source_ids": {
+            "$ref": "#/$defs/sourceIds"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "facilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "route_id",
+          "facility",
+          "status",
+          "source_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "route_id": {
+            "type": "string"
+          },
+          "facility": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "source_ids": {
+            "$ref": "#/$defs/sourceIds"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "safety": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "hazard",
+          "description",
+          "action",
+          "status",
+          "source_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "hazard": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "source_ids": {
+            "$ref": "#/$defs/sourceIds"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "data_quality": {
+      "type": "object",
+      "required": [
+        "gpx",
+        "database",
+        "readiness",
+        "limitations"
+      ],
+      "properties": {
+        "gpx": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha256",
+            "track_count",
+            "trackpoint_count",
+            "waypoint_count"
+          ]
+        },
+        "database": {
+          "type": "object"
+        },
+        "readiness": {
+          "type": "object"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "research_notes": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sourceIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^S[0-9]{2}$"
+      }
+    }
+  }
+}

@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetClose } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
-import { Menu, X, ArrowUpRight, Tent } from "lucide-react"
+import { Menu, X, ArrowUpRight } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import ThemeToggle from "@/components/theme-toggle"
@@ -41,7 +42,7 @@ export default function SiteHeader() {
     <header className="sticky inset-x-0 top-0 z-50 flex h-20 items-center justify-center px-3 sm:px-4">
       <div className={cn("mx-auto flex h-fit w-full max-w-7xl items-center justify-between gap-3.5 rounded-full border px-3 py-2 transition-all duration-500 lg:gap-5", sticky ? "border-border/60 bg-background/85 shadow-lg shadow-slate-950/5 backdrop-blur-xl" : "border-transparent bg-background/55 backdrop-blur-md")}>
         <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-2.5" aria-label="Akasha Outdoor Rent, beranda">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm sm:size-10"><Tent className="size-5" /></span>
+          <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-black/5 bg-[#fff8ed] p-0.5 shadow-sm sm:size-11"><Image src="/logo.png" alt="" width={48} height={48} priority className="size-full object-contain" /></span>
           <span className="truncate text-[13px] font-bold tracking-tight sm:text-base">Akasha <span className="text-primary">Outdoor</span><span className="ml-1 font-display font-normal text-primary italic">Rent</span></span>
         </Link>
 
@@ -63,7 +64,7 @@ export default function SiteHeader() {
               <SheetTrigger id="mobile-menu-trigger" aria-label="Buka menu navigasi" className="rounded-full border border-border/70 bg-card/80 p-2.5 backdrop-blur-md"><Menu className="size-4.5" /></SheetTrigger>
               <SheetContent showCloseButton={false} side="right" className="w-[min(90vw,390px)] border-l border-border/60 p-0">
                 <div className="flex items-center justify-between border-b border-border/60 p-5">
-                  <Link href="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2.5"><span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Tent className="size-4" /></span><span className="text-sm font-semibold">Akasha Outdoor Rent</span></Link>
+                  <Link href="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2.5"><span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-black/5 bg-[#fff8ed] p-0.5"><Image src="/logo.png" alt="" width={40} height={40} className="size-full object-contain" /></span><span className="text-sm font-semibold">Akasha Outdoor Rent</span></Link>
                   <SheetClose id="mobile-menu-close" aria-label="Tutup menu" className="rounded-full border border-border p-2.5"><X className="size-4" /></SheetClose>
                   <SheetTitle className="sr-only">Menu navigasi</SheetTitle>
                 </div>

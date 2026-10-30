@@ -1,14 +1,22 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeft, ArrowUpRight, CheckCircle2, ExternalLink, MapPin, Mountain, Route } from "lucide-react"
-import BookingNoticeDialog from "@/components/booking-notice-dialog"
-import GoogleMapsEmbed from "@/components/google-maps-embed"
+import { ArrowLeft, ArrowUpRight, CloudSun, MapPin, Mountain, Route, ShieldCheck } from "lucide-react"
+import HikingInfoDialog from "@/components/hiking-info-dialog"
+import DestinationRouteMap from "@/components/destination-route-map"
 import HikingWeatherPanel from "@/components/hiking-weather-panel"
 import HikingWeatherAlertsPanel from "@/components/hiking-weather-alerts-panel"
-import { HikingAdvisories, HikingMediaSlots } from "@/components/hiking-information-panels"
-import HikingSourceRoutes from "@/components/hiking-source-routes"
-import { getHikingSourceByNameOrSlug, getHikingDestinationForSource, type HikingSourceCheckpoint } from "@/lib/hiking-source"
-import { formatElevation, type HikingCheckpoint } from "@/lib/hiking"
+import { HikingAdvisories, HikingMediaGallery } from "@/components/hiking-information-panels"
+import {
+  type HikingAdvisory,
+  type HikingMedia,
+  type HikingMountain,
+  type HikingTrail,
+  formatElevation,
+  formatDistance,
+  formatDuration,
+  formatIndonesianDate,
+  requestHikingCatalog,
+} from "@/lib/hiking"
 
 export const dynamic = "force-dynamic"
 
@@ -16,155 +24,209 @@ type PageProps = { params: Promise<{ mountainSlug: string }> }
 
 export async function generateMetadata({ params }: PageProps) {
   const { mountainSlug } = await params
-  const row = getHikingSourceByNameOrSlug(mountainSlug)
-  const destination = row ? getHikingDestinationForSource(row) : null
   return {
-    title: (destination?.name ?? "Detail Destinasi") + " | Akasha Outdoor Rent",
-    description: "Peta, kandidat jalur sumber, informasi wilayah, dan referensi prakiraan cuaca untuk " + (destination?.name ?? "destinasi pendakian") + ".",
+    title: "Detail Destinasi | Akasha Outdoor Rent",
+    description: "Peta, jalur pendakian, informasi wilayah, dan prakiraan cuaca destinasi.",
     alternates: { canonical: "/destinasi/" + encodeURIComponent(mountainSlug) },
   }
 }
 
-function mountainLocation(mountain: ReturnType<typeof getHikingDestinationForSource>) {
-  return [mountain.regency, mountain.province].filter(Boolean).join(", ") || "Wilayah belum dipublikasikan"
+function mountainLocation(mountain: HikingMountain) {
+  return [mountain.regency, mountain.province].filter(Boolean).join(", ") || "Wilayah belum tersedia"
 }
 
-function safeHttps(url?: string | null) {
-  return url?.startsWith("https://") ? url : null
+function trailStatusLabel(trail: HikingTrail) {
+  const status = trail.operational_status?.toLowerCase()
+  if (status === "open") return "Dibuka"
+  if (status === "closed") return "Ditutup"
+  if (status === "limited") return "Akses terbatas"
+  if (status?.includes("closed")) return "Ditutup sementara"
+  if (trail.route_source_reference_url?.toLowerCase().includes("astacala.org")) return "Referensi ASTACALA"
+  return "Info perlu dikonfirmasi"
 }
 
-function asWeatherCheckpoints(points: HikingSourceCheckpoint[]): HikingCheckpoint[] {
-  return points.map((point) => ({
-    checkpoint_id: point.candidateId,
-    sequence_number: point.sourceIndex ?? null,
-    name: point.name,
-    checkpoint_type: point.typeCandidate ?? point.locationRoleCandidate ?? null,
-    latitude: point.latitude ?? null,
-    longitude: point.longitude ?? null,
-    // A DEM candidate is deliberately not passed as a verified checkpoint elevation.
-    elevation_m: point.elevation?.verifiedElevationM ?? null,
-    verified_at: point.elevation?.verifiedAt ?? null,
-    temperature_estimate_public_eligible:
-      point.temperatureEstimatePublicDisplayEligible === true &&
-      point.temperatureElevationCorrection?.publicDisplayEligible === true &&
-      point.publicationStatus === "published" &&
-      point.elevation?.verifiedElevationM != null,
-  }))
+function trailStatusClass(trail: HikingTrail) {
+  const status = trail.operational_status?.toLowerCase()
+  if (status === "open") return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+  if (status === "closed" || status?.includes("closed")) return "bg-red-500/10 text-red-700 dark:text-red-300"
+  if (status === "limited") return "bg-amber-500/10 text-amber-800 dark:text-amber-200"
+  if (trail.route_source_reference_url?.toLowerCase().includes("astacala.org")) return "bg-sky-500/10 text-sky-700 dark:text-sky-300"
+  return "bg-muted text-muted-foreground"
+}
+
+function DestinationUnavailable({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="min-h-[60vh] px-4 py-16 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-xl flex-col items-center rounded-3xl border border-amber-500/25 bg-amber-500/[0.05] p-8 text-center">
+        <span className="flex size-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-700 dark:text-amber-300"><Mountain className="size-5" /></span>
+        <h1 className="mt-4 text-xl font-semibold tracking-tight">{title}</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{message}</p>
+        <Link href="/destinasi" className="mt-5 inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground">Kembali ke destinasi <ArrowUpRight className="size-4" /></Link>
+      </div>
+    </div>
+  )
 }
 
 export default async function MountainDetailPage({ params }: PageProps) {
   const { mountainSlug } = await params
-  // JSON is the primary and only catalog source for this public detail workflow for now.
-  const sourceRow = getHikingSourceByNameOrSlug(mountainSlug)
-  if (!sourceRow) notFound()
-  const mountain = getHikingDestinationForSource(sourceRow)
-  const sourceDestination = mountain
+  let mountain: HikingMountain | null = null
+  let trails: HikingTrail[] = []
+  try {
+    const [mountainResponse, trailsResponse] = await Promise.all([
+      requestHikingCatalog<HikingMountain>({ resource: "mountains", mountain_slug: mountainSlug, limit: 1, offset: 0 }),
+      requestHikingCatalog<HikingTrail>({ resource: "trails", mountain_slug: mountainSlug, limit: 50, offset: 0 }),
+    ])
+    mountain = mountainResponse.items?.[0] ?? null
+    trails = trailsResponse.items ?? []
+  } catch {
+    return <DestinationUnavailable title="Destinasi belum dapat dimuat" message="Informasi destinasi sementara tidak dapat diperbarui. Silakan coba kembali beberapa saat lagi." />
+  }
+  if (!mountain) notFound()
+
+  const [advisoryResult, mediaResult] = await Promise.all([
+    requestHikingCatalog<HikingAdvisory>({ resource: "advisories", mountain_slug: mountain.slug, limit: 20, offset: 0 })
+      .then((response) => ({ items: response.items ?? [], unavailable: false }))
+      .catch(() => ({ items: [] as HikingAdvisory[], unavailable: true })),
+    requestHikingCatalog<HikingMedia>({ resource: "media", mountain_slug: mountain.slug, limit: 20, offset: 0 })
+      .then((response) => ({ items: response.items ?? [], unavailable: false }))
+      .catch(() => ({ items: [] as HikingMedia[], unavailable: true })),
+  ])
+
   const location = mountainLocation(mountain)
-  const sourceMapEmbedUrl = safeHttps(sourceDestination.sourceMapEmbedUrl)
-  const mapViewUrl = safeHttps(sourceDestination.sourceMapViewUrl)
-  const sourcePageUrl = safeHttps(sourceDestination.sourcePageUrl)
-  const sourceGpxUrl = safeHttps(sourceDestination.sourceGpxUrl)
-  const sourceKmzUrl = safeHttps(sourceDestination.sourceKmzUrl)
-  const sourcePdfUrl = safeHttps(sourceDestination.sourcePdfUrl)
-  const candidatePoints = sourceRow.localGpxAnalysis?.checkpointCandidates ?? []
-  const weatherCheckpoints = asWeatherCheckpoints(candidatePoints)
-  const previewEligibleCount = candidatePoints.filter((point) => point.temperatureEstimateCalculationEligible === true).length
-  const temperaturePublicEligibleCount = candidatePoints.filter((point) => point.temperatureEstimatePublicDisplayEligible === true && point.temperatureElevationCorrection?.publicDisplayEligible === true && point.publicationStatus === "published" && point.elevation?.verifiedElevationM != null).length
+  const sourceDate = formatIndonesianDate(mountain.verified_at)
+  const mapMountain = {
+    mountain_id: mountain.mountain_id,
+    slug: mountain.slug,
+    name: mountain.name,
+    latitude: mountain.latitude,
+    longitude: mountain.longitude,
+  }
+  const mapTrails = trails.map((trail) => ({
+    trail_id: trail.trail_id,
+    slug: trail.slug,
+    name: trail.name,
+    basecamp_name: trail.basecamp_name,
+    routeGeoJson: trail.dataAvailability?.routeGeoJson === true ? trail.route_geojson ?? null : null,
+  }))
 
   return (
     <div className="overflow-clip bg-background text-foreground">
-      <section className="px-4 pb-4 pt-6 sm:px-6 sm:pb-5 sm:pt-8 lg:px-8">
+      <section className="px-4 pb-5 pt-6 sm:px-6 sm:pb-7 sm:pt-8 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <Link href="/destinasi" className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"><ArrowLeft className="size-3.5" /> Semua destinasi</Link>
           <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <p className="section-eyebrow"><Mountain className="size-3.5" /> Detail destinasi</p>
               <h1 className="mt-2 text-3xl font-semibold tracking-tight text-balance sm:text-4xl lg:text-5xl">{mountain.name}</h1>
-              {mountain.verified_at && mountain.elevation_m != null && <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3.5" /> Elevasi terverifikasi · {formatElevation(mountain.elevation_m)}</p>}
+              <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground"><MapPin className="size-4 shrink-0 text-primary" />{location}</p>
             </div>
-            <a href="#jalur" className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card px-4 text-xs font-semibold transition hover:bg-muted">Lihat jalur dari JSON <Route className="size-3.5" /></a>
+            <div className="flex items-center gap-2">
+              <HikingInfoDialog title="Informasi data destinasi" description="Sumber informasi dan batas penggunaan data yang ditampilkan.">
+                <div className="space-y-3 text-muted-foreground">
+                  <p>{mountain.description || "Deskripsi destinasi belum tersedia."}</p>
+                  <p>Elevasi, koordinat, dan karakteristik gunung merupakan informasi referensi dari data yang dipublikasikan. Data ini tidak berarti telah dilakukan survei lapangan terbaru.</p>
+                  {mountain.primary_source_name && <p><span className="font-semibold text-foreground">Sumber data:</span> {mountain.primary_source_name}</p>}
+                  {sourceDate && <p><span className="font-semibold text-foreground">Pemeriksaan data:</span> {sourceDate}. Pemeriksaan ini berkaitan dengan data sumber dan strukturnya, bukan konfirmasi kondisi lapangan.</p>}
+                  {mountain.source_reference_url && <a href={mountain.source_reference_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">Buka referensi sumber <ArrowUpRight className="size-3.5" /></a>}
+                </div>
+              </HikingInfoDialog>
+              <a href="#jalur" className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card px-4 text-xs font-semibold transition hover:bg-muted">Lihat jalur <Route className="size-3.5" /></a>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            {mountain.elevation_m != null && <span className="rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">Elevasi tercatat · {formatElevation(mountain.elevation_m)}</span>}
+            <span className="rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">{trails.length} jalur tersedia</span>
           </div>
         </div>
       </section>
 
-      <section className="px-4 pb-8 sm:px-6 sm:pb-10 lg:px-8">
+      <section className="px-4 pb-7 sm:px-6 sm:pb-9 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <GoogleMapsEmbed
-            src={sourceMapEmbedUrl}
-            title={"Peta " + sourceDestination.sourceMapTitle}
-            viewUrl={mapViewUrl}
-            searchQuery={mountain.name + ", " + location + ", Indonesia"}
-            frameClassName="h-[350px] sm:h-[460px] lg:h-[min(62vh,620px)]"
-            caption="Peta sumber dari JSON. Penanda dan label berasal dari peta/rekaman terdahulu dan bukan pengesahan rute aktif atau titik yang telah diverifikasi."
-          />
-          <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-            <p className="flex items-center gap-2 text-sm font-medium"><MapPin className="size-4 shrink-0 text-primary" /> {location}</p>
-            <div className="flex flex-wrap gap-2">
-              <BookingNoticeDialog label="Pesan tiket pendakian" purpose="hiking-ticket" itemName={mountain.name} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:opacity-90" />
-              {mapViewUrl && <a href={mapViewUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-semibold transition hover:bg-muted">Buka map <ExternalLink className="size-3.5" /></a>}
-            </div>
-          </div>
-          {sourceRow && <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-            {sourcePageUrl && <a href={sourcePageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-primary hover:underline">Sumber data ASTACALA <ExternalLink className="size-3.5" /></a>}
-            {sourceGpxUrl && <a href={sourceGpxUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 font-medium hover:bg-muted">GPX sumber <ExternalLink className="size-3" /></a>}
-            {sourceKmzUrl && <a href={sourceKmzUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 font-medium hover:bg-muted">KMZ sumber <ExternalLink className="size-3" /></a>}
-            {sourcePdfUrl && <a href={sourcePdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 font-medium hover:bg-muted">Dokumen PDF <ExternalLink className="size-3" /></a>}
-          </div>}
+          <DestinationRouteMap key={mountain.slug} mountain={mapMountain} trails={mapTrails} location={location} />
         </div>
       </section>
 
-      <section className="px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-          <article className="rounded-3xl border border-border/60 bg-card p-5 sm:p-7">
+      <section className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(270px,0.72fr)]">
+          <article className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6">
             <span className="section-eyebrow"><Mountain className="size-3.5" /> Tentang destinasi</span>
-            <h2 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">Kenali wilayahnya</h2>
-            <p className="mt-3 text-sm leading-7 text-muted-foreground">Informasi awal destinasi bersumber dari katalog JSON pendakian Jawa Barat. Detail operasional dan status jalur perlu dipastikan kembali ke pengelola setempat sebelum perjalanan.</p>
-            <div className="mt-5 space-y-3 border-t border-border/60 pt-5">
-              <div className="flex items-start justify-between gap-4"><span className="text-xs text-muted-foreground">Wilayah</span><span className="text-right text-sm font-medium">{location}</span></div>
-              <div className="flex items-start justify-between gap-4"><span className="text-xs text-muted-foreground">Sumber data</span><span className="text-right text-sm font-medium">JSON · versi 2.3.0</span></div>
-              {sourceRow.localGpxAnalysis?.trackCount != null && <div className="flex items-start justify-between gap-4"><span className="text-xs text-muted-foreground">Track GPX terdeteksi</span><span className="text-right text-sm font-medium">{sourceRow.localGpxAnalysis.trackCount}</span></div>}
-              {sourceRow.localGpxAnalysis?.trackElevationQuality && <div className="flex items-start justify-between gap-4"><span className="text-xs text-muted-foreground">Kualitas elevasi track</span><span className="text-right text-sm font-medium">{sourceRow.localGpxAnalysis.trackElevationQuality.replaceAll("_", " ")}</span></div>}
+            <h2 className="mt-2 text-lg font-semibold tracking-tight">Kenali wilayahnya</h2>
+            <p className="mt-2 line-clamp-4 text-sm leading-6 text-muted-foreground">{mountain.description || "Deskripsi destinasi belum tersedia."}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              {mountain.primary_source_name && <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] text-muted-foreground">Sumber: {mountain.primary_source_name}</span>}
+              {mountain.is_volcanic === true && <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] text-muted-foreground">Gunung vulkanik</span>}
+              {mountain.is_volcanic === false && <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] text-muted-foreground">Gunung non-vulkanik</span>}
+              <HikingInfoDialog title="Batas informasi destinasi">
+                <p className="text-muted-foreground">Peta dan informasi lokasi merupakan referensi awal. Konfirmasikan jalur, perizinan, dan kondisi terkini kepada pengelola setempat sebelum melakukan perjalanan.</p>
+              </HikingInfoDialog>
             </div>
           </article>
-          <div className="rounded-3xl border border-border/60 bg-card p-5 sm:p-7">
-            <span className="section-eyebrow"><Route className="size-3.5" /> Sebelum mendaki</span>
-            <h2 className="mt-3 text-xl font-semibold tracking-tight">Cek sumber dan kondisi</h2>
-            <p className="mt-3 text-sm leading-7 text-muted-foreground">Peta dan titik kandidat membantu orientasi awal, tetapi tidak memastikan jalur dibuka, aman, atau bisa dilalui. Cek pengelola, cuaca, perizinan, dan kondisi terbaru sebelum berangkat.</p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <a href="#cuaca" className="inline-flex h-10 items-center gap-2 rounded-full border border-border px-4 text-xs font-semibold transition hover:bg-muted">Lihat prakiraan cuaca <ArrowUpRight className="size-3.5" /></a>
-              <a href="#jalur" className="inline-flex h-10 items-center gap-2 rounded-full border border-border px-4 text-xs font-semibold transition hover:bg-muted">Lihat data jalur <ArrowUpRight className="size-3.5" /></a>
+          <aside className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.08] via-card to-sky-500/[0.06] p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><ShieldCheck className="size-4.5" /></span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Sebelum berangkat</p>
+                <p className="mt-1 text-[11px] leading-5 text-muted-foreground">Cek status jalur, pahami aturan pengelola, dan tinjau cuaca terbaru.</p>
+              </div>
             </div>
-          </div>
+            <p className="mt-2.5 border-t border-border/50 pt-2 text-[10px] leading-4 text-muted-foreground">Informasi digital adalah referensi awal, bukan pengganti konfirmasi lapangan.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a href="#cuaca" className="group inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3.5 text-[11px] font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/30 active:translate-y-0 active:scale-[0.97]">
+                <CloudSun className="size-3.5 transition-transform duration-200 group-hover:rotate-[-8deg]" /> Cek cuaca <ArrowUpRight className="size-3 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </a>
+              <a href="#jalur" className="group inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-background/80 px-3.5 text-[11px] font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.05] hover:shadow-sm active:translate-y-0 active:scale-[0.97]">
+                Pilih jalur <ArrowUpRight className="size-3 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </a>
+            </div>
+          </aside>
         </div>
       </section>
 
-      <HikingSourceRoutes row={sourceRow} />
-
-      <section id="cuaca" className="scroll-mt-24 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+      <section id="jalur" className="scroll-mt-24 px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-5 max-w-2xl">
-            <span className="section-eyebrow"><Mountain className="size-3.5" /> Cuaca dan suhu</span>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">Prakiraan wilayah dan estimasi elevasi</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Data prakiraan dan referensi elevasi dibaca dari JSON; prakiraan BMKG mewakili wilayah akses, bukan kondisi aktual puncak.</p>
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div><span className="section-eyebrow"><Route className="size-3.5" /> Jalur pendakian</span><h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Pilih jalur pendakian</h2></div>
+            <span className="rounded-full border border-border/70 bg-card px-3 py-1.5 text-[10px] font-semibold text-muted-foreground">{trails.length} jalur</span>
           </div>
-          <HikingWeatherPanel
-            sourceMountainSlug={sourceDestination.sourceSlug}
-            expectedAdm4={sourceDestination.weatherAdm4}
-            referenceElevationM={sourceDestination.weatherReferenceElevationM}
-            referenceElevationStatus={sourceDestination.weatherReferenceElevationStatus}
-            checkpoints={weatherCheckpoints}
-            allowPointTemperatureEstimates={true}
-            sourceTemperaturePreviewCount={previewEligibleCount}
-            sourceTemperaturePublicEligibleCount={temperaturePublicEligibleCount}
-          />
+          {trails.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-card p-5 text-sm leading-6 text-muted-foreground">Belum ada jalur yang tersedia untuk ditampilkan. Silakan periksa kembali nanti atau hubungi pengelola setempat.</div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {trails.map((trail) => (
+                <article key={trail.trail_id} className="rounded-2xl border border-border/60 bg-card p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0"><h3 className="text-sm font-semibold">{trail.name}</h3>{trail.basecamp_name && <p className="mt-1 text-xs text-muted-foreground">{trail.basecamp_name}</p>}</div>
+                    <span className={"shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold " + trailStatusClass(trail)}>{trailStatusLabel(trail)}</span>
+                  </div>
+                  {trail.description && <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">{trail.description}</p>}
+                  <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+                    {trail.distance_m != null && <span className="rounded-full bg-muted px-2.5 py-1">{formatDistance(trail.distance_m)}</span>}
+                    {trail.elevation_gain_m != null && <span className="rounded-full bg-muted px-2.5 py-1">+{trail.elevation_gain_m.toLocaleString("id-ID")} m</span>}
+                    {trail.estimated_duration_minutes != null && <span className="rounded-full bg-muted px-2.5 py-1">{formatDuration(trail.estimated_duration_minutes)}</span>}
+                  </div>
+                  <div className="mt-4 flex justify-end border-t border-border/60 pt-3"><Link href={"/destinasi/" + mountain.slug + "/jalur/" + trail.slug} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-xs font-semibold text-primary-foreground">Detail jalur <ArrowUpRight className="size-3.5" /></Link></div>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="border-t border-border/60 bg-secondary/20 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-        <div className="mx-auto max-w-7xl space-y-5">
+      <section id="cuaca" className="scroll-mt-24 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-4 flex items-center gap-2">
+            <div><span className="section-eyebrow"><Mountain className="size-3.5" /> Cuaca</span><h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Prakiraan wilayah</h2></div>
+          </div>
+          <HikingWeatherPanel mountainSlug={mountain.slug} />
+        </div>
+      </section>
+
+      <section className="border-t border-border/60 bg-secondary/20 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <div className="mx-auto max-w-7xl space-y-4">
           <HikingWeatherAlertsPanel province={mountain.province} regency={mountain.regency} />
-          <HikingAdvisories items={[]} unavailable />
-          <HikingMediaSlots mountainName={mountain.name} />
+          <HikingAdvisories items={advisoryResult.items} unavailable={advisoryResult.unavailable} />
+          <HikingMediaGallery items={mediaResult.items} unavailable={mediaResult.unavailable} />
         </div>
       </section>
     </div>

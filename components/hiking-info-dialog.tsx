@@ -1,0 +1,70 @@
+"use client"
+
+import { useEffect, useId, useRef, useState, type ReactNode } from "react"
+import { Info, X } from "lucide-react"
+
+type Props = {
+  title: string
+  description?: string
+  children: ReactNode
+  label?: string
+  className?: string
+}
+
+export default function HikingInfoDialog({
+  title,
+  description,
+  children,
+  label = "Informasi tambahan",
+  className = "",
+}: Props) {
+  const [open, setOpen] = useState(false)
+  const titleId = useId()
+  const dialogRef = useRef<HTMLDialogElement | null>(null)
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+    if (open && !dialog.open) dialog.showModal()
+    if (!open && dialog.open) dialog.close()
+  }, [open])
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={label + ": " + title}
+        title={label}
+        onClick={() => setOpen(true)}
+        className={"inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-sky-500/20 bg-sky-500/[0.06] text-sky-700 transition hover:border-sky-500/40 hover:bg-sky-500/10 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-sky-300 " + className}
+      >
+        <Info className="size-3.5" />
+      </button>
+      <dialog
+        ref={dialogRef}
+        onClose={() => setOpen(false)}
+        aria-labelledby={titleId}
+        className="animate-in fade-in zoom-in-95 duration-200 m-auto max-h-[min(74vh,640px)] w-[calc(100%-2rem)] max-w-md overflow-hidden rounded-2xl border border-sky-500/20 bg-card p-0 text-foreground shadow-[0_24px_80px_-24px_rgba(2,132,199,0.38)] backdrop:bg-slate-950/55 backdrop:backdrop-blur-sm"
+      >
+        <div className="flex items-start gap-3 border-b border-border/70 bg-gradient-to-r from-sky-500/[0.10] via-primary/[0.06] to-transparent px-4 py-3.5 sm:px-5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-700 dark:text-sky-300"><Info className="size-4" /></span>
+          <div className="min-w-0 flex-1">
+            <h2 id={titleId} className="text-sm font-semibold tracking-tight">{title}</h2>
+            {description && <p className="mt-1 text-[11px] leading-5 text-muted-foreground">{description}</p>}
+          </div>
+          <button
+            type="button"
+            aria-label="Tutup informasi"
+            onClick={() => dialogRef.current?.close()}
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-border/70 bg-background/70 text-muted-foreground transition hover:border-sky-500/30 hover:bg-sky-500/10 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+        <div className="max-h-[58vh] overflow-y-auto px-4 py-4 text-[13px] leading-6 sm:px-5">
+          {children}
+        </div>
+      </dialog>
+    </>
+  )
+}

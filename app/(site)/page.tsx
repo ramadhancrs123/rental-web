@@ -7,14 +7,11 @@ import FaqSection from "@/components/faq-section"
 import HomeHero from "@/components/home-hero"
 import DestinationsHighlight from "@/components/destinations-highlight"
 import ScrollReveal from "@/components/scroll-reveal"
-import { fetchCatalog, catalogCategories, formatRentalDuration } from "@/lib/catalog"
 import { fetchPublicTestimonials } from "@/lib/testimonials"
 import TestimonialSection from "@/components/testimonial-section"
 import AboutUs from "@/components/about-us"
 import BookingNoticeDialog from "@/components/booking-notice-dialog"
-import { formatRupiah, WA_NUMBER } from "@/lib/supabase"
-
-export const dynamic = "force-dynamic"
+import { WA_NUMBER } from "@/lib/supabase"
 
 function SectionHeading({ eyebrow, title, italicWord, desc, align = "center" }: {
   eyebrow: string; title: string; italicWord?: string; desc?: string; align?: "center" | "left"
@@ -30,17 +27,10 @@ function SectionHeading({ eyebrow, title, italicWord, desc, align = "center" }: 
   )
 }
 
-function PriceTag({ price, durationValue, durationUnit }: { price: number | null; durationValue: number | null; durationUnit: string | null }) {
-  if (price === null) return <span className="text-sm font-medium text-muted-foreground">Hubungi kami</span>
-  const duration = formatRentalDuration(durationValue, durationUnit)
-  return <span className="text-base font-bold tracking-tight text-primary sm:text-lg">{formatRupiah(price)}{duration && <span className="ml-1 text-xs font-normal text-muted-foreground">/ {duration}</span>}</span>
-}
-
 const FEATURES = [
-  { icon: Clock3, number: "10 JAM", title: "Toleransi pengembalian", desc: "Ada waktu toleransi hingga 10 jam setelah jadwal pengembalian, sesuai ketentuan rental.", featured: true },
-  { icon: CalendarCheck, number: "01", title: "Booking online", desc: "Ajukan penyewaan melalui website tanpa perlu datang lebih dulu hanya untuk bertanya." },
-  { icon: PackageCheck, number: "02", title: "Perlengkapan diperiksa", desc: "Barang melalui proses pemeriksaan kondisi sesuai prosedur operasional Akasha." },
-  { icon: QrCode, number: "03", title: "Serah terima lebih praktis", desc: "QR reservasi membantu proses identifikasi saat pengambilan barang setelah dikonfirmasi." },
+  { icon: CalendarCheck, number: "01", title: "Booking online", desc: "Ajukan permintaan sewa dan lanjutkan konfirmasi bersama pengelola." },
+  { icon: PackageCheck, number: "02", title: "Perlengkapan diperiksa", desc: "Kondisi barang diperiksa sebelum diserahterimakan." },
+  { icon: QrCode, number: "03", title: "Serah terima praktis", desc: "QR reservasi membantu identifikasi saat pengambilan barang." },
 ]
 
 const STEPS = [
@@ -50,19 +40,14 @@ const STEPS = [
 ]
 
 export default async function LandingPage() {
-  const [{ items }, testimonialPage] = await Promise.all([
-    fetchCatalog().catch(() => ({ items: [] })),
-    fetchPublicTestimonials(0, 3),
-  ])
-  const categories = catalogCategories(items)
-  const featured = items.filter((item) => item.minPrice !== null).slice(0, 6)
+  const testimonialPage = await fetchPublicTestimonials(0, 3)
   const waLink = "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent("Halo Akasha Outdoor Rent, saya ingin bertanya tentang penyewaan perlengkapan outdoor.")
 
   return (
     <div className="overflow-clip bg-background text-foreground">
       <HomeHero />
 
-      <section id="keunggulan" className="scroll-mt-24 px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
+      <section id="keunggulan" className="scroll-mt-24 px-4 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
         <div className="mx-auto max-w-7xl">
           <ScrollReveal>
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -71,17 +56,39 @@ export default async function LandingPage() {
             </div>
           </ScrollReveal>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <ScrollReveal className="mt-8">
+            <article className="feature-highlight relative overflow-hidden rounded-[2rem] border border-primary/25 bg-gradient-to-br from-primary/[0.13] via-card to-secondary/55 p-5 sm:p-7 lg:p-8">
+              <div className="pointer-events-none absolute -right-12 -top-20 size-64 rounded-full bg-primary/[0.09] blur-3xl" />
+              <div className="relative grid gap-5 md:grid-cols-[0.72fr_1.28fr] md:items-center md:gap-8">
+                <div className="flex items-end gap-3">
+                  <span className="feature-stat-number text-[6.5rem] leading-[0.78] font-semibold tracking-[-0.09em] text-primary sm:text-[8rem]">10</span>
+                  <span className="mb-1 text-lg font-bold tracking-[0.16em] text-primary sm:text-xl">JAM</span>
+                </div>
+                <div>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[10px] font-bold tracking-[0.15em] text-primary uppercase">
+                    <Clock3 className="size-3.5" /> Keunggulan utama Akasha
+                  </span>
+                  <h3 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">Toleransi pengembalian lebih fleksibel</h3>
+                  <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                    Ada toleransi pengembalian hingga 10 jam setelah jadwal pengembalian, sesuai ketentuan rental.
+                  </p>
+                </div>
+              </div>
+            </article>
+          </ScrollReveal>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
             {FEATURES.map((feature, index) => (
-              <ScrollReveal key={feature.title} delay={index * 0.06}>
-                <article className={"feature-card group relative h-full overflow-hidden rounded-3xl border p-6 transition duration-300 hover:-translate-y-1 hover:shadow-lg " + (feature.featured ? "border-primary/35 bg-primary/[0.07] shadow-md shadow-primary/5" : "border-border/60 bg-card hover:border-primary/30")}>
-                  {feature.featured && <div className="absolute top-0 right-0 rounded-bl-2xl bg-primary px-3 py-1.5 text-[10px] font-bold tracking-[0.12em] text-primary-foreground uppercase">Keunggulan utama</div>}
-                  <div className="flex items-start justify-between gap-3">
-                    <span className={"flex size-12 items-center justify-center rounded-2xl transition-colors " + (feature.featured ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground group-hover:bg-primary/10 group-hover:text-primary")}><feature.icon className="size-5" /></span>
-                    <span className="pt-1 text-xs font-semibold tracking-widest text-muted-foreground/70">{feature.number}</span>
-                  </div>
-                  <h3 className="mt-6 text-base font-semibold tracking-tight">{feature.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{feature.desc}</p>
+              <ScrollReveal key={feature.title} delay={index * 0.07}>
+                <article className="group flex h-full items-start gap-3 rounded-2xl border border-border/60 bg-card p-4 transition duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                    <feature.icon className="size-4.5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="text-[10px] font-bold tracking-[0.14em] text-primary/80">{feature.number}</span>
+                    <span className="mt-0.5 block text-sm font-semibold tracking-tight">{feature.title}</span>
+                    <span className="mt-1 block text-xs leading-5 text-muted-foreground">{feature.desc}</span>
+                  </span>
                 </article>
               </ScrollReveal>
             ))}
@@ -91,60 +98,46 @@ export default async function LandingPage() {
 
       <AboutUs />
 
-      {categories.length > 0 && (
-        <section className="border-y border-border/60 bg-muted/50 py-12 sm:py-14">
-          <ScrollReveal>
-            <div className="mx-auto flex max-w-7xl flex-col items-center gap-5 px-4 sm:px-6 lg:flex-row lg:justify-between lg:px-8">
-              <div className="text-center lg:text-left"><p className="text-sm font-semibold">Temukan perlengkapanmu</p><p className="mt-1 text-xs text-muted-foreground">Kategori yang tersedia di katalog Akasha.</p></div>
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                {categories.map((category) => <Link key={category} href="/katalog" className="rounded-full border border-border/70 bg-card px-4 py-2 text-xs font-medium transition duration-200 hover:border-primary/40 hover:text-primary sm:text-sm">{category}</Link>)}
-              </div>
-            </div>
-          </ScrollReveal>
-        </section>
-      )}
 
-      <section id="katalog-unggulan" className="scroll-mt-24 px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
+
+      <section id="katalog-unggulan" className="scroll-mt-24 px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <ScrollReveal>
-            <div className="mb-10 flex flex-wrap items-end justify-between gap-5 sm:mb-12">
-              <SectionHeading eyebrow="Katalog pilihan" title="Perlengkapan untuk" italicWord="perjalananmu." desc="Jelajahi pilihan yang tersedia dan lihat tarif sebelum mengirim permintaan sewa." align="left" />
-              <Link href="/katalog" className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium transition hover:bg-muted">Lihat semua <ArrowUpRight className="size-4" /></Link>
-            </div>
-          </ScrollReveal>
+            <Link
+              href="/katalog"
+              aria-label="Jelajahi katalog perlengkapan dan paket camping Akasha"
+              className="catalog-entry group relative isolate block overflow-hidden rounded-[2rem] border border-primary/25 bg-gradient-to-br from-card via-card to-primary/[0.09] p-5 shadow-lg shadow-primary/[0.04] transition duration-500 hover:-translate-y-1 hover:border-primary/45 hover:shadow-xl hover:shadow-primary/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-4 sm:p-7 lg:p-8"
+            >
+              <div className="pointer-events-none absolute -right-12 -top-16 size-64 rounded-full bg-primary/[0.14] blur-3xl transition duration-700 group-hover:scale-125" aria-hidden="true" />
+              <Tent className="pointer-events-none absolute -right-5 -bottom-10 hidden size-56 rotate-[-14deg] text-primary/[0.08] transition-transform duration-700 group-hover:-rotate-6 group-hover:scale-105 sm:block" strokeWidth={0.8} aria-hidden="true" />
 
-          {featured.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-border p-10 text-center">
-              <Tent className="mx-auto size-8 text-muted-foreground" />
-              <p className="mt-3 font-medium">Katalog sedang disiapkan</p>
-              <p className="mt-1 text-sm text-muted-foreground">Silakan kunjungi katalog atau hubungi admin untuk informasi ketersediaan.</p>
-              <Link href="/katalog" className="mt-5 inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90">Buka katalog</Link>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {featured.map((item, index) => (
-                <ScrollReveal key={item.barang_id} delay={(index % 3) * 0.06}>
-                  <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card transition duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-slate-950/5">
-                    <div className="product-art relative flex h-44 items-center justify-center overflow-hidden sm:h-52">
-                      <div className="product-art__orb absolute -right-8 -bottom-16 size-48 rounded-full bg-primary/10 blur-2xl transition-transform duration-700 group-hover:scale-125" />
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.10] via-transparent to-sky-500/[0.10]" />
-                      <div className="absolute top-4 left-4 rounded-full border border-border/40 bg-card/85 px-3 py-1 text-[10px] font-semibold tracking-[0.1em] text-muted-foreground uppercase backdrop-blur">{item.kategori_nama}</div>
-                      <Tent className="relative size-[4.25rem] text-primary/75 transition duration-500 group-hover:scale-110 group-hover:-rotate-3" strokeWidth={1.1} />
-                      <span className="absolute right-4 bottom-4 flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground"><Sparkles className="size-3 text-primary" /> Pilihan Akasha</span>
-                    </div>
-                    <div className="flex flex-1 flex-col p-5 sm:p-6">
-                      <h3 className="text-base font-semibold tracking-tight">{item.nama}</h3>
-                      <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">{item.ringkasan_publik ?? item.deskripsi ?? "Perlengkapan outdoor untuk menemani perjalananmu."}</p>
-                      <div className="mt-5 flex items-center justify-between gap-3 border-t border-border/60 pt-4">
-                        <PriceTag price={item.minPrice} durationValue={item.minPriceDurationValue} durationUnit={item.minPriceDurationUnit} />
-                        <BookingNoticeDialog label="Pesan" ariaLabel={"Informasi pemesanan " + item.nama} icon={false} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground transition hover:opacity-90" />
-                      </div>
-                    </div>
-                  </article>
-                </ScrollReveal>
-              ))}
-            </div>
-          )}
+              <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+                <div className="max-w-2xl">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.08] px-3 py-1.5 text-[10px] font-bold tracking-[0.15em] text-primary uppercase">
+                    <Sparkles className="size-3.5" /> Katalog Akasha
+                  </span>
+                  <h2 className="mt-4 max-w-xl text-[1.65rem] leading-[1.13] font-semibold tracking-tight text-balance sm:text-3xl lg:text-4xl">
+                    Perlengkapan & paket camping <span className="font-display font-normal italic text-primary">untuk perjalananmu.</span>
+                  </h2>
+                  <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                    Temukan perlengkapan satuan atau pilihan paket camping. Lihat foto, detail, dan tarifnya langsung di halaman katalog.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/75 px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
+                      <Tent className="size-3.5 text-primary" /> Sewa perlengkapan
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/75 px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
+                      <PackageCheck className="size-3.5 text-primary" /> Paket camping
+                    </span>
+                  </div>
+                </div>
+
+                <span className="catalog-entry__action inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition duration-300 group-hover:gap-3 group-hover:shadow-lg sm:w-auto">
+                  Jelajahi katalog <ArrowUpRight className="size-4" />
+                </span>
+              </div>
+            </Link>
+          </ScrollReveal>
         </div>
       </section>
 

@@ -1,0 +1,409 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:akasha:hiking-catalog:province:v1.1.0",
+  "title": "Jawa Barat Hiking Catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "research_date",
+    "province",
+    "status",
+    "publishable",
+    "scope",
+    "regional_restriction",
+    "mountains",
+    "source_asset_inventory",
+    "data_quality"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.1.0"
+    },
+    "dataset_id": {
+      "const": "hiking:jawa-barat:catalog"
+    },
+    "research_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "province": {
+      "const": "Jawa Barat"
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "large_research_baseline_complete_review_required",
+        "reviewed",
+        "approved_for_import",
+        "published"
+      ]
+    },
+    "publishable": {
+      "const": false
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "included",
+        "excluded"
+      ],
+      "properties": {
+        "included": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "regional_restriction": {
+      "$ref": "#/$defs/restriction"
+    },
+    "mountains": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "$ref": "#/$defs/mountain"
+      }
+    },
+    "source_asset_inventory": {
+      "type": "object",
+      "required": [
+        "local_gpx_files",
+        "tracks",
+        "trackpoints",
+        "waypoints",
+        "files",
+        "duplicate_files",
+        "missing_local_gpx"
+      ]
+    },
+    "data_quality": {
+      "type": "object",
+      "required": [
+        "existing_supabase_inventory",
+        "derived_metrics",
+        "track_policy",
+        "waypoint_policy",
+        "publication_policy",
+        "high_risk_identity_checks"
+      ]
+    }
+  },
+  "$defs": {
+    "sourceIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^S[0-9]{2}$"
+      }
+    },
+    "coordinate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "latitude",
+        "longitude"
+      ],
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "longitude": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        }
+      }
+    },
+    "restriction": {
+      "type": "object",
+      "required": [
+        "status",
+        "source_ids"
+      ],
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "source_ids": {
+          "$ref": "#/$defs/sourceIds"
+        }
+      }
+    },
+    "track": {
+      "type": "object",
+      "required": [
+        "id",
+        "source_track_name",
+        "source_track_index",
+        "segment_count",
+        "trackpoint_count",
+        "coordinate_sequence_sha256",
+        "classification",
+        "official_route_association",
+        "source_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "source_track_name": {
+          "type": "string"
+        },
+        "source_track_index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "segment_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trackpoint_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "start": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/coordinate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "end": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/coordinate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "coordinate_sequence_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "official_route_association": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "duplicate_of_track_id": {
+          "type": "string"
+        },
+        "source_ids": {
+          "$ref": "#/$defs/sourceIds"
+        }
+      }
+    },
+    "waypoint": {
+      "type": "object",
+      "required": [
+        "id",
+        "source_index",
+        "source_label",
+        "label_type",
+        "location",
+        "route_association",
+        "source_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "source_index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_label": {
+          "type": "string"
+        },
+        "label_type": {
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "route_association": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_ids": {
+          "$ref": "#/$defs/sourceIds"
+        }
+      }
+    },
+    "mountain": {
+      "type": "object",
+      "required": [
+        "slug",
+        "name",
+        "administrative_area",
+        "research_status",
+        "summary",
+        "documented_routes",
+        "basecamp_candidates",
+        "source_tracks",
+        "source_waypoints",
+        "existing_database_inventory",
+        "source_ids"
+      ],
+      "properties": {
+        "slug": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "administrative_area": {
+          "type": "object",
+          "required": [
+            "province",
+            "regency"
+          ]
+        },
+        "research_status": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 20
+        },
+        "documented_routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "source_ids"
+            ]
+          }
+        },
+        "basecamp_candidates": {
+          "type": "array"
+        },
+        "source_gpx": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "source_tracks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/track"
+          }
+        },
+        "source_waypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/waypoint"
+          }
+        },
+        "existing_database_inventory": {
+          "type": "object",
+          "required": [
+            "published_trail_records",
+            "published_checkpoint_records"
+          ]
+        },
+        "source_ids": {
+          "$ref": "#/$defs/sourceIds"
+        },
+        "source_track_access_matches": {
+          "type": "array",
+          "description": "Spatial proximity between a raw GPX waypoint and source trackpoints; not an official route association.",
+          "items": {
+            "type": "object",
+            "required": [
+              "source_waypoint_index",
+              "source_waypoint_label",
+              "location",
+              "nearby_source_tracks",
+              "method",
+              "interpretation"
+            ],
+            "properties": {
+              "source_waypoint_index": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "source_waypoint_label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "location": {
+                "$ref": "#/$defs/coordinate"
+              },
+              "nearby_source_tracks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "source_track_index",
+                    "source_track_name",
+                    "nearest_trackpoint_distance_m",
+                    "classification"
+                  ],
+                  "properties": {
+                    "source_track_index": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "source_track_name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "nearest_trackpoint_distance_m": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "classification": {
+                      "const": "spatial_match_candidate_not_route_verification"
+                    }
+                  }
+                }
+              },
+              "method": {
+                "type": "string"
+              },
+              "interpretation": {
+                "type": "string",
+                "minLength": 20
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

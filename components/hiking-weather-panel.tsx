@@ -1,30 +1,22 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { AlertCircle, CloudSun, Droplets, RefreshCw, Wind, Thermometer, Clock3 } from "lucide-react"
-import { type HikingCheckpoint, type HikingWeatherResponse, formatIndonesianDate, requestHikingWeather, requestSourceHikingWeather } from "@/lib/hiking"
+import { AlertCircle, ChevronDown, ChevronUp, CloudSun, Droplets, RefreshCw, Wind, Thermometer, Clock3 } from "lucide-react"
+import HikingInfoDialog from "@/components/hiking-info-dialog"
+import { type HikingWeatherResponse, formatIndonesianDate, requestHikingWeather } from "@/lib/hiking"
 
 type Props = {
   mountainSlug?: string
   trailSlug?: string
-  sourceMountainSlug?: string
-  sourceAdm4?: string | null
-  expectedAdm4?: string | null
-  referenceElevationM?: number | null
-  referenceElevationStatus?: string | null
-  checkpoints?: HikingCheckpoint[]
-  allowPointTemperatureEstimates?: boolean
-  sourceTemperaturePreviewCount?: number
-  sourceTemperaturePublicEligibleCount?: number
 }
 type ForecastPeriod = Record<string, unknown>
 
 function friendlyError(message: string) {
-  if (message.includes("WEATHER_AREA_NOT_CONFIGURED")) return "Wilayah prakiraan BMKG belum ditetapkan dan diverifikasi untuk destinasi ini."
-  if (message.includes("WEATHER_AREA_INACTIVE")) return "Wilayah referensi cuaca belum aktif. Informasi prakiraan akan tersedia setelah konfigurasi diverifikasi."
-  if (message.includes("DESTINATION_NOT_FOUND") || message.includes("TRAIL_NOT_FOUND")) return "Destinasi belum tersedia dalam katalog publik."
-  if (message.includes("FEATURE_DISABLED")) return "Informasi cuaca untuk katalog ini belum diaktifkan."
-  if (message.includes("WEATHER_UPSTREAM_UNAVAILABLE")) return "Prakiraan BMKG dan cache yang layak digunakan belum tersedia. Silakan periksa lagi nanti."
+  if (message.includes("WEATHER_AREA_NOT_CONFIGURED")) return "Prakiraan untuk wilayah ini belum tersedia."
+  if (message.includes("WEATHER_AREA_INACTIVE")) return "Prakiraan untuk wilayah ini belum aktif."
+  if (message.includes("DESTINATION_NOT_FOUND") || message.includes("TRAIL_NOT_FOUND")) return "Destinasi belum tersedia dalam katalog."
+  if (message.includes("FEATURE_DISABLED")) return "Informasi cuaca belum tersedia untuk destinasi ini."
+  if (message.includes("WEATHER_UPSTREAM_UNAVAILABLE")) return "Prakiraan BMKG dan data pembaruan terakhir belum tersedia. Silakan periksa lagi nanti."
   return "Prakiraan BMKG belum dapat dimuat. Periksa kembali nanti dan rujuk informasi resmi sebelum berangkat."
 }
 
@@ -58,28 +50,54 @@ function numeric(value: unknown, suffix = "", decimals = 0) {
   return Number.isFinite(parsed) ? parsed.toLocaleString("id-ID", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + suffix : null
 }
 
-function pointTemperature(baseTemperature: number, targetElevation: number, referenceElevation: number) {
-  return Math.round((baseTemperature - 6.5 * (targetElevation - referenceElevation) / 1000) * 10) / 10
+function periodValue(item: ForecastPeriod) {
+  return typeof item.local_datetime === "string"
+    ? item.local_datetime
+    : typeof item.datetime === "string" ? item.datetime : null
 }
 
-export default function HikingWeatherPanel({ mountainSlug, trailSlug, sourceMountainSlug, sourceAdm4, expectedAdm4, referenceElevationM, referenceElevationStatus, checkpoints, allowPointTemperatureEstimates = false, sourceTemperaturePreviewCount = 0, sourceTemperaturePublicEligibleCount = 0 }: Props) {
+function compactTime(value: unknown) {
+  if (typeof value !== "string") return "Waktu tidak tersedia"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat("id-ID", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Jakarta",
+  }).format(date)
+}
+
+function staleLabel(value?: string | null) {
+  if (!value) return "Pembaruan BMKG sedang terkendala. Data terakhir yang tersedia ditampilkan sebagai referensi."
+  if (value.includes("BMKG") || value.includes("FEED") || value.includes("UPSTREAM")) {
+    return "Pembaruan dari BMKG sedang terkendala. Data terakhir yang tersedia ditampilkan sebagai referensi."
+  }
+  return "Pembaruan prakiraan sedang terkendala. Data terakhir yang tersedia ditampilkan sebagai referensi."
+}
+
+export default function HikingWeatherPanel({ mountainSlug, trailSlug }: Props) {
   const [data, setData] = useState<HikingWeatherResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [completedKey, setCompletedKey] = useState<string | null>(null)
   const [selectedDateTime, setSelectedDateTime] = useState("")
+  const [showAllForecasts, setShowAllForecasts] = useState(false)
+  const [showAllTemperaturePoints, setShowAllTemperaturePoints] = useState(false)
   const [retry, setRetry] = useState(0)
-  const requestKey = [mountainSlug ?? "", trailSlug ?? "", sourceMountainSlug ?? "", sourceAdm4 ?? "", String(retry)].join(":")
+  const requestKey = [mountainSlug ?? "", trailSlug ?? "", String(retry)].join(":")
   const loading = completedKey !== requestKey
 
   useEffect(() => {
     const controller = new AbortController()
-    const request = sourceAdm4
-      ? requestSourceHikingWeather({ adm4: sourceAdm4 }, controller.signal)
-      : sourceMountainSlug
-        ? requestSourceHikingWeather({ mountainSlug: sourceMountainSlug }, controller.signal)
-        : requestHikingWeather({ mountain: mountainSlug, trail: trailSlug }, controller.signal)
-    request
-      .then((result) => { if (!controller.signal.aborted) { setData(result); setError(null) } })
+    requestHikingWeather({ mountain: mountainSlug, trail: trailSlug }, controller.signal)
+      .then((result) => {
+        if (!controller.signal.aborted) {
+          setData(result)
+          setError(null)
+        }
+      })
       .catch((cause: unknown) => {
         if (!controller.signal.aborted) {
           setData(null)
@@ -88,87 +106,208 @@ export default function HikingWeatherPanel({ mountainSlug, trailSlug, sourceMoun
       })
       .finally(() => { if (!controller.signal.aborted) setCompletedKey(requestKey) })
     return () => controller.abort()
-  }, [mountainSlug, trailSlug, sourceMountainSlug, sourceAdm4, retry, requestKey])
+  }, [mountainSlug, trailSlug, retry, requestKey])
 
   const visibleData = loading ? null : data
   const visibleError = loading ? null : error
   const periods = useMemo(() => visibleData ? getPeriods(visibleData) : [], [visibleData])
-  const selectedPeriod = periods.find((item) => (typeof item.local_datetime === "string" ? item.local_datetime : item.datetime) === selectedDateTime) ?? periods[0] ?? null
-  const currentSourceUrl = visibleData?.source?.sourceUrl || "https://data.bmkg.go.id/prakiraan-cuaca/"
-  const baseTemperature = selectedPeriod ? Number(selectedPeriod.t) : Number.NaN
-  const selectedTime = selectedPeriod?.local_datetime ?? selectedPeriod?.datetime
-  const referenceMatches = !expectedAdm4 || visibleData?.location.adm4Code === expectedAdm4
-  const referenceReady = referenceElevationM != null && Number.isFinite(referenceElevationM) && referenceElevationStatus === "dem_models_agree_provisional" && referenceMatches
-  const verifiedCheckpoints = (checkpoints ?? []).filter((point) =>
-    (Boolean(point.verified_at) || point.temperature_estimate_public_eligible === true) &&
-    point.elevation_m != null &&
-    Number.isFinite(Number(point.elevation_m))
-  )
-  const canEstimatePoints = Boolean(checkpoints) && allowPointTemperatureEstimates && referenceReady && Number.isFinite(baseTemperature)
+  const selectedPeriod = periods.find((item) => periodValue(item) === selectedDateTime) ?? periods[0] ?? null
+  const selectedTime = selectedPeriod ? periodValue(selectedPeriod) : null
+  const temperatureEstimates = visibleData?.temperatureEstimates
+  const temperaturePeriod = temperatureEstimates?.periods.find((period) => period.datetime === selectedTime) ?? null
+  const visibleForecasts = showAllForecasts ? periods : periods.slice(0, 4)
+  const temperaturePoints = temperaturePeriod?.points ?? []
+  const visibleTemperaturePoints = showAllTemperaturePoints ? temperaturePoints : temperaturePoints.slice(0, 4)
+  const sourceUrl = visibleData?.source?.sourceUrl
+  const currentSourceUrl = typeof sourceUrl === "string" && sourceUrl.startsWith("https://")
+    ? sourceUrl
+    : "https://data.bmkg.go.id/prakiraan-cuaca/"
 
   return (
     <section className="overflow-hidden rounded-3xl border border-border/60 bg-card">
-      <div className="flex items-start gap-3 border-b border-border/60 p-5 sm:p-6">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-700 dark:text-sky-300"><CloudSun className="size-5" /></span>
+      <div className="flex items-center gap-3 border-b border-border/60 px-4 py-4 sm:px-5">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-700 dark:text-sky-300"><CloudSun className="size-5" /></span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-base font-semibold tracking-tight">Prakiraan cuaca BMKG</h2>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">Prakiraan wilayah referensi · dipilih menurut waktu, bukan pengamatan langsung di pos atau puncak.</p>
+          <h2 className="text-sm font-semibold tracking-tight">Prakiraan cuaca BMKG</h2>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">Ringkasan wilayah referensi</p>
         </div>
+        <HikingInfoDialog title="Cakupan prakiraan dan estimasi" description="Pahami cakupan wilayah dan batas penggunaan informasi cuaca.">
+          <div className="space-y-5">
+            <section className="space-y-2">
+              <h3 className="text-sm font-semibold">Wilayah prakiraan</h3>
+              <p className="text-muted-foreground">{visibleData?.location.scopeNotice || "Prakiraan mengikuti wilayah administrasi yang menjadi referensi, bukan pengamatan langsung di pos, jalur, atau puncak."}</p>
+              {visibleData && <p className="text-xs text-muted-foreground">Wilayah: {[visibleData.location.village, visibleData.location.district, visibleData.location.regency, visibleData.location.province].filter(Boolean).join(", ")}.</p>}
+            </section>
+
+            <section className="border-t border-border/60 pt-4">
+              <h3 className="text-sm font-semibold">Estimasi suhu titik jalur</h3>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">Estimasi mengikuti suhu wilayah dan referensi elevasi digital. Nilainya bukan pengukuran lapangan atau prakiraan resmi BMKG untuk setiap checkpoint.</p>
+              {temperatureEstimates?.status === "available" && temperaturePeriod ? (
+                <p className="mt-2 rounded-xl bg-muted/45 px-3 py-2.5 text-xs text-muted-foreground">
+                  {temperaturePeriod.points.length} titik dapat dilihat langsung pada panel utama sesuai waktu prakiraan yang dipilih.
+                  Referensi elevasi {numeric(temperatureEstimates.reference?.elevationM, " mdpl") ?? "tidak tersedia"}.
+                </p>
+              ) : (
+                <p className="mt-2 rounded-xl bg-muted/45 px-3 py-2.5 text-xs leading-5 text-muted-foreground">
+                  {temperatureEstimates?.reason === "no_public_eligible_checkpoints"
+                    ? "Estimasi belum tersedia untuk titik jalur yang dapat ditampilkan."
+                    : temperatureEstimates?.reason === "reference_elevation_not_verified"
+                      ? "Estimasi belum tersedia karena elevasi wilayah referensi belum dikonfirmasi."
+                      : "Estimasi suhu untuk titik jalur ini belum tersedia."}
+                </p>
+              )}
+            </section>
+            <section className="space-y-1.5 border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">
+              <p>Waktu analisis BMKG: {formatIndonesianDate(visibleData?.analysisDate) ?? "tidak tersedia"}.</p>
+              <p>Terakhir diambil: {formatIndonesianDate(visibleData?.fetchedAt) ?? "tidak tersedia"}.</p>
+              <p>Sumber: <a href={currentSourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-primary underline underline-offset-2">BMKG</a>.</p>
+            </section>
+          </div>
+        </HikingInfoDialog>
       </div>
 
-      <div className="p-5 sm:p-6">
-        {loading && <div className="space-y-3" role="status" aria-live="polite"><div className="h-16 animate-pulse rounded-2xl bg-muted" /><div className="h-24 animate-pulse rounded-2xl bg-muted" /><span className="sr-only">Memuat prakiraan cuaca BMKG</span></div>}
+      <div className="p-4 sm:p-5">
+        {loading && <div className="grid gap-3 sm:grid-cols-[1.2fr_0.8fr]" role="status" aria-live="polite"><div className="h-24 animate-pulse rounded-2xl bg-muted" /><div className="h-24 animate-pulse rounded-2xl bg-muted" /><span className="sr-only">Memuat prakiraan cuaca BMKG</span></div>}
 
-        {!loading && visibleError && <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-4"><div className="flex items-start gap-2.5"><AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" /><p className="text-sm leading-6 text-muted-foreground">{friendlyError(visibleError)}</p></div><button type="button" onClick={() => { setCompletedKey(null); setRetry((value) => value + 1) }} className="mt-3 inline-flex h-9 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-xs font-semibold transition hover:bg-muted"><RefreshCw className="size-3.5" /> Coba lagi</button></div>}
+        {!loading && visibleError && <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-4">
+          <div className="flex items-start gap-2.5"><AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" /><p className="text-sm leading-6 text-muted-foreground">{friendlyError(visibleError)}</p></div>
+          <button type="button" onClick={() => { setCompletedKey(null); setRetry((value) => value + 1) }} className="mt-3 inline-flex h-9 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-xs font-semibold transition hover:bg-muted"><RefreshCw className="size-3.5" /> Coba lagi</button>
+        </div>}
 
         {!loading && visibleData && (
-          <div className="space-y-4">
-            <div className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-sky-500/10 via-primary/[0.04] to-transparent p-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0"><p className="text-sm font-semibold">{visibleData.location.village}{visibleData.location.district ? ", " + visibleData.location.district : ""}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{[visibleData.location.regency, visibleData.location.province].filter(Boolean).join(", ")}</p><p className="mt-2 text-[10px] leading-5 text-muted-foreground">Kode BMKG: {visibleData.location.adm4Code}</p></div>
-              <span className={"inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] font-semibold " + (visibleData.stale ? "bg-amber-500/10 text-amber-700 dark:text-amber-300" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300")}><span className={"size-1.5 rounded-full " + (visibleData.stale ? "bg-amber-500" : "bg-emerald-500")} />{visibleData.stale ? "Cache lama" : "Data tersedia"}</span>
-            </div>
-
-            {visibleData.stale && <p className="text-xs leading-5 text-amber-700 dark:text-amber-300">{visibleData.staleReason || "Pembaruan BMKG sedang terkendala. Data cache ditampilkan sebagai referensi, bukan kondisi terkini."}</p>}
-
-            {periods.length > 0 ? (
-              <div className="space-y-3">
-                <label className="flex flex-col gap-1.5 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between"><span className="inline-flex items-center gap-1.5"><Clock3 className="size-3.5 text-primary" /> Waktu prakiraan (interval 3 jam)</span><select value={typeof selectedTime === "string" ? selectedTime : ""} onChange={(event) => setSelectedDateTime(event.target.value)} className="min-h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-medium outline-none focus:border-primary/50 sm:max-w-[290px]">{periods.map((item, index) => { const time = typeof item.local_datetime === "string" ? item.local_datetime : String(item.datetime ?? index); return <option key={time} value={time}>{displayTime(time)}</option> })}</select></label>
-                {selectedPeriod ? (
-                  <article className="rounded-2xl border border-border/60 bg-background p-4 sm:p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[11px] font-medium text-muted-foreground">{displayTime(selectedTime)}</p><p className="mt-2 text-lg font-semibold tracking-tight">{typeof selectedPeriod.weather_desc === "string" ? selectedPeriod.weather_desc : "Prakiraan tersedia"}</p></div><div className="text-right"><p className="text-3xl font-semibold tracking-tight">{numeric(selectedPeriod.t, "°C") ?? "—"}</p><p className="text-[10px] text-muted-foreground">Suhu prakiraan wilayah</p></div></div>
-                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      <div className="rounded-xl bg-muted/55 p-3"><Droplets className="size-3.5 text-sky-600 dark:text-sky-300" /><p className="mt-2 text-[10px] text-muted-foreground">Kelembapan</p><p className="mt-1 text-sm font-semibold">{numeric(selectedPeriod.hu, "%") ?? "—"}</p></div>
-                      <div className="rounded-xl bg-muted/55 p-3"><Droplets className="size-3.5 text-sky-600 dark:text-sky-300" /><p className="mt-2 text-[10px] text-muted-foreground">Curah hujan</p><p className="mt-1 text-sm font-semibold">{numeric(selectedPeriod.tp, " mm", 1) ?? "—"}</p></div>
-                      <div className="rounded-xl bg-muted/55 p-3"><Wind className="size-3.5 text-primary" /><p className="mt-2 text-[10px] text-muted-foreground">Kecepatan angin</p><p className="mt-1 text-sm font-semibold">{numeric(selectedPeriod.ws, " km/j", 1) ?? "—"}</p></div>
-                      <div className="rounded-xl bg-muted/55 p-3"><Wind className="size-3.5 text-primary" /><p className="mt-2 text-[10px] text-muted-foreground">Arah angin</p><p className="mt-1 text-sm font-semibold">{typeof selectedPeriod.wd === "string" || typeof selectedPeriod.wd === "number" ? String(selectedPeriod.wd) : "—"}</p></div>
-                    </div>
-                  </article>
-                ) : null}
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{visibleData.location.village}{visibleData.location.district ? ", " + visibleData.location.district : ""}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{[visibleData.location.regency, visibleData.location.province].filter(Boolean).join(", ")}</p>
+                <p className="mt-1 max-w-2xl text-[10px] leading-4 text-muted-foreground">{visibleData.location.scopeNotice}</p>
               </div>
-            ) : <div className="rounded-2xl border border-dashed border-border p-4 text-sm leading-6 text-muted-foreground">Data prakiraan tersedia dari BMKG, tetapi periode yang dapat ditampilkan belum terbaca. Silakan periksa sumber resmi.</div>}
-
-            {checkpoints !== undefined && (
-              <section className="rounded-2xl border border-border/60 p-4 sm:p-5">
-                <div className="flex items-start gap-2.5"><span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Thermometer className="size-4.5" /></span><div><h3 className="text-sm font-semibold">Estimasi suhu sepanjang jalur</h3><p className="mt-1 text-[11px] leading-5 text-muted-foreground">Estimasi aplikasi berdasarkan suhu BMKG pada waktu yang dipilih dan selisih elevasi. Bukan pengukuran lapangan atau prakiraan titik resmi BMKG.</p></div></div>
-                {canEstimatePoints && verifiedCheckpoints.length > 0 ? (
-                  <ol className="mt-4 grid gap-2 sm:grid-cols-2">
-                    {verifiedCheckpoints.map((point, index) => {
-                      const estimated = pointTemperature(baseTemperature, Number(point.elevation_m), Number(referenceElevationM))
-                      return <li key={point.checkpoint_id ?? point.code ?? point.sequence_number ?? point.name + index} className="flex items-center justify-between gap-3 rounded-xl bg-muted/45 px-3.5 py-3"><div className="min-w-0"><p className="truncate text-xs font-semibold">{point.sequence_number != null ? "" + point.sequence_number + ". " : ""}{point.name}</p><p className="mt-1 text-[10px] text-muted-foreground">Elevasi terverifikasi · {numeric(point.elevation_m, " mdpl")}</p></div><p className="shrink-0 text-lg font-semibold tracking-tight">{numeric(estimated, "°C", 1)}</p></li>
-                    })}
-                  </ol>
-                ) : (
-                  <p className="mt-4 rounded-xl bg-muted/45 px-3.5 py-3 text-xs leading-5 text-muted-foreground">{!referenceReady ? "Estimasi titik belum tersedia karena elevasi referensi BMKG/DEM belum dapat dipadankan dengan wilayah prakiraan." : !allowPointTemperatureEstimates ? "Prakiraan wilayah tersedia, tetapi belum dipadankan secara khusus dengan jalur ini. Estimasi suhu titik ditahan agar tidak memakai referensi yang keliru." : verifiedCheckpoints.length === 0 && sourceTemperaturePreviewCount > 0 && sourceTemperaturePublicEligibleCount === 0 ? "JSON menyediakan " + sourceTemperaturePreviewCount + " titik yang dapat dihitung untuk pratinjau, tetapi belum ada titik yang lolos gerbang publikasi suhu. Status titik masih pending_review, asosiasi jalur belum diverifikasi, dan hak penggunaan sumber belum dipastikan; karena itu angka suhu titik belum dipublikasikan." : verifiedCheckpoints.length === 0 ? "Belum ada checkpoint dengan elevasi terverifikasi yang siap dihitung. Informasi kandidat tidak diperlakukan sebagai pos terverifikasi." : "Estimasi suhu belum tersedia untuk waktu prakiraan ini."}</p>
+                <div className="flex w-full shrink-0 flex-col items-stretch gap-1.5 sm:w-auto sm:items-end">
+                {periods.length > 0 && (
+                  <label className="flex min-h-9 items-center gap-2 rounded-xl border border-border/70 bg-background/80 px-2.5 py-1.5 shadow-sm sm:w-[220px]">
+                    <Clock3 className="size-3.5 shrink-0 text-primary" />
+                    <span className="sr-only">Pilih waktu prakiraan BMKG</span>
+                    <select
+                      aria-label="Waktu prakiraan BMKG"
+                      value={typeof selectedTime === "string" ? selectedTime : ""}
+                      onChange={(event) => setSelectedDateTime(event.target.value)}
+                      className="min-w-0 flex-1 appearance-none bg-transparent text-[10px] font-semibold text-foreground outline-none"
+                    >
+                      {periods.map((item, index) => {
+                        const time = periodValue(item) ?? String(item.datetime ?? index)
+                        return <option key={time} value={time}>{compactTime(time)}</option>
+                      })}
+                    </select>
+                    <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
+                  </label>
                 )}
-                <p className="mt-3 text-[10px] leading-4 text-muted-foreground">Model awal memakai 6,5°C/km. Laju suhu nyata dapat berbeda karena kondisi atmosfer, kelembapan, awan, angin, inversi, dan topografi. Data DEM merupakan estimasi elevasi, bukan survei lapangan.</p>
+                <span className={"inline-flex min-h-6 items-center justify-end gap-1.5 self-end rounded-full px-2.5 py-1 text-[10px] font-semibold " + (visibleData.stale ? "bg-amber-500/10 text-amber-700 dark:text-amber-300" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300")}>
+                  <span className={"size-1.5 rounded-full " + (visibleData.stale ? "bg-amber-500" : "bg-emerald-500")} />
+                  {visibleData.stale ? "Pembaruan tertunda" : "Prakiraan tersedia"}
+                </span>
+              </div>
+            </div>
+            {visibleData.stale && <p className="rounded-xl bg-amber-500/[0.07] px-3 py-2 text-[11px] leading-5 text-amber-800 dark:text-amber-200">{staleLabel(visibleData.staleReason)}</p>}
+
+            {selectedPeriod ? (
+              <article className="rounded-2xl bg-gradient-to-br from-sky-500/10 via-primary/[0.04] to-transparent p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0"><p className="text-[10px] font-medium text-muted-foreground">{displayTime(selectedTime)}</p><p className="mt-1.5 text-base font-semibold tracking-tight">{typeof selectedPeriod.weather_desc === "string" ? selectedPeriod.weather_desc : "Prakiraan tersedia"}</p></div>
+                  <div className="text-right"><p className="text-3xl font-semibold tracking-tight">{numeric(selectedPeriod.t, "°C") ?? "—"}</p><p className="text-[10px] text-muted-foreground">Suhu wilayah</p></div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <div className="rounded-xl border border-border/50 bg-background/70 p-2.5"><Droplets className="size-3.5 text-sky-600 dark:text-sky-300" /><p className="mt-1.5 text-[9px] text-muted-foreground">Kelembapan</p><p className="mt-0.5 text-xs font-semibold">{numeric(selectedPeriod.hu, "%") ?? "—"}</p></div>
+                  <div className="rounded-xl border border-border/50 bg-background/70 p-2.5"><Droplets className="size-3.5 text-sky-600 dark:text-sky-300" /><p className="mt-1.5 text-[9px] text-muted-foreground">Hujan</p><p className="mt-0.5 text-xs font-semibold">{numeric(selectedPeriod.tp, " mm", 1) ?? "—"}</p></div>
+                  <div className="rounded-xl border border-border/50 bg-background/70 p-2.5"><Wind className="size-3.5 text-primary" /><p className="mt-1.5 text-[9px] text-muted-foreground">Angin</p><p className="mt-0.5 text-xs font-semibold">{numeric(selectedPeriod.ws, " km/j", 1) ?? "—"}</p></div>
+                </div>
+              </article>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border p-4 text-sm leading-6 text-muted-foreground">Periode prakiraan belum tersedia. Silakan periksa sumber resmi BMKG.</div>
+            )}
+
+            {periods.length > 0 && (
+              <section className="rounded-2xl border border-border/60 p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs font-semibold">Prediksi cuaca berikutnya</h3>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">{periods.length} periode · interval sekitar 3 jam</p>
+                  </div>
+                  <span className="rounded-full bg-sky-500/10 px-2.5 py-1 text-[9px] font-semibold text-sky-700 dark:text-sky-300">BMKG</span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {visibleForecasts.map((item) => {
+                    const time = periodValue(item)
+                    if (!time) return null
+                    const isSelected = time === selectedTime
+                    return (
+                      <button
+                        key={time}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => setSelectedDateTime(time)}
+                        className={"min-w-0 rounded-xl border px-3 py-2.5 text-left transition " + (isSelected ? "border-primary/45 bg-primary/[0.06]" : "border-border/60 bg-background hover:bg-muted/50")}
+                      >
+                        <div className="flex items-start justify-between gap-1">
+                          <span className="text-[10px] font-medium text-muted-foreground">{compactTime(time)}</span>
+                          <span className="shrink-0 text-xs font-semibold">{numeric(item.t, "°C") ?? "—"}</span>
+                        </div>
+                        <p className="mt-1.5 line-clamp-1 text-[11px] font-semibold">{typeof item.weather_desc === "string" ? item.weather_desc : "Prakiraan tersedia"}</p>
+                        <p className="mt-1 text-[9px] text-muted-foreground">{numeric(item.tp, " mm", 1) ?? "—"} hujan · {numeric(item.ws, " km/j", 1) ?? "—"} angin</p>
+                      </button>
+                    )
+                  })}
+                </div>
+                {periods.length > 4 && (
+                  <button type="button" onClick={() => setShowAllForecasts((value) => !value)} className="mt-3 inline-flex min-h-8 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-semibold text-primary transition hover:bg-primary/5">
+                    {showAllForecasts ? "Tampilkan lebih ringkas" : "Lihat " + (periods.length - 4) + " periode lainnya"}
+                    {showAllForecasts ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                  </button>
+                )}
               </section>
             )}
 
-            <div className="space-y-1.5 border-t border-border/60 pt-3 text-[10px] leading-5 text-muted-foreground">
-              <p>{visibleData.location.scopeNotice}</p>
-              <p>Analisis BMKG: {formatIndonesianDate(visibleData.analysisDate) ?? "Waktu analisis belum tersedia"} · Diambil: {formatIndonesianDate(visibleData.fetchedAt) ?? "Waktu pengambilan belum tersedia"}.</p>
-              <p>Sumber: <a href={currentSourceUrl} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-2 hover:text-foreground">BMKG</a>.</p>
-            </div>
+            {temperatureEstimates?.status === "available" && (
+              <section className="rounded-2xl border border-border/60 p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Thermometer className="size-4" /></span>
+                    <div className="min-w-0">
+                      <h3 className="text-xs font-semibold">Estimasi suhu titik jalur</h3>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">{temperatureEstimates.periods[0]?.points.length ?? 0} titik · estimasi elevasi</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{temperaturePeriod ? compactTime(temperaturePeriod.datetime) : "Periode belum tersedia"}</span>
+                </div>
+                {temperaturePeriod ? (
+                  <>
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {visibleTemperaturePoints.map((point) => (
+                        <article key={point.checkpointId} className="min-w-0 rounded-xl bg-muted/45 px-3 py-2.5">
+                          <p className="truncate text-[10px] font-semibold">{point.sequenceNumber}. {point.name}</p>
+                          <p className="mt-1 text-[9px] text-muted-foreground">{numeric(point.elevationM, " mdpl") ?? "Elevasi tidak tersedia"}</p>
+                          <p className="mt-1 text-base font-semibold tracking-tight">{numeric(point.estimatedTemperatureC, "°C", 1) ?? "—"}</p>
+                        </article>
+                      ))}
+                    </div>
+                    {temperaturePoints.length > 4 && (
+                      <button type="button" onClick={() => setShowAllTemperaturePoints((value) => !value)} className="mt-3 inline-flex min-h-8 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-semibold text-primary transition hover:bg-primary/5">
+                        {showAllTemperaturePoints ? "Tampilkan lebih ringkas" : "Lihat " + (temperaturePoints.length - 4) + " titik lainnya"}
+                        {showAllTemperaturePoints ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                      </button>
+                    )}
+                    <p className="mt-2 text-[10px] leading-4 text-muted-foreground">Estimasi berbasis suhu BMKG wilayah dan referensi elevasi {numeric(temperatureEstimates.reference?.elevationM, " mdpl") ?? "tidak tersedia"}. Bukan pengukuran langsung atau prakiraan resmi BMKG pada tiap titik.</p>
+                  </>
+                ) : (
+                  <p className="mt-3 rounded-xl bg-muted/45 px-3 py-2.5 text-xs text-muted-foreground">Estimasi untuk periode prakiraan ini belum tersedia.</p>
+                )}
+              </section>
+            )}
+            {temperatureEstimates?.status === "not_available" && (
+              <p className="rounded-xl border border-dashed border-border px-3.5 py-3 text-xs leading-5 text-muted-foreground">
+                Estimasi suhu titik jalur belum tersedia untuk referensi elevasi atau checkpoint yang dapat ditampilkan.
+              </p>
+            )}
+            <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><Clock3 className="size-3.5" /> Terakhir diperbarui: {formatIndonesianDate(visibleData.fetchedAt) ?? "waktu tidak tersedia"}</p>
           </div>
         )}
       </div>

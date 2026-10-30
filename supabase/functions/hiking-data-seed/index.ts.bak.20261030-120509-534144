@@ -1,0 +1,461 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { XMLParser, XMLValidator } from "npm:fast-xml-parser@4.5.3";
+
+const BUCKET = "hiking-route-sources";
+const MAX_GPX_BYTES = 20 * 1024 * 1024;
+const MAX_JSON_BYTES = 12 * 1024 * 1024;
+const MAX_POINTS = 100_000;
+const SOURCE_CODE = "astacala_bank_data";
+const SOURCE_REFERENCE = "https://pmpa.astacala.org/jalur-pendakian-gunung/";
+
+const JSON_MANIFEST_SHA256 = "5489be2d17ce761f512377220a7afb5f4320e32562f244e23ea4d9bddd20809f";
+const EXPECTED_MOUNTAIN_CODES = [
+  "JAB_BUKIT_TUNGGUL","JAB_BURANGRANG","JAB_CEREMAI","JAB_CIKURAY","JAB_GALUNGGUNG",
+  "JAB_GEDE_PANGRANGO","JAB_GUNTUR_MASIGIT","JAB_HALIMUN","JAB_KENDENG","JAB_MANGLAYANG",
+  "JAB_PAPANDAYAN","JAB_PATUHA","JAB_RAKUTAK","JAB_SALAK","JAB_TANGKUBAN_PERAHU",
+  "JAB_WAYANG","JAB_PEG_MALABAR_PUNCAK_BESAR","JAB_PEG_MALABAR_PUNCAK_HARUMAN",
+  "JAB_PEG_MALABAR_PUNCAK_PUNTANG","JAB_TEGAL_PANJANG",
+];
+const EXPECTED_MOUNTAIN_ADM4: Record<string,string> = {
+  "JAB_BUKIT_TUNGGUL":"32.17.01.2014",
+  "JAB_BURANGRANG":"32.17.02.2003",
+  "JAB_CEREMAI":"32.08.18.2009",
+  "JAB_CIKURAY":"32.05.19.2013",
+  "JAB_GALUNGGUNG":"32.06.28.2004",
+  "JAB_GEDE_PANGRANGO":"32.02.32.2006",
+  "JAB_GUNTUR_MASIGIT":"32.05.04.2011",
+  "JAB_HALIMUN":"32.01.21.2001",
+  "JAB_KENDENG":"32.04.31.2005",
+  "JAB_MANGLAYANG":"32.04.05.2006",
+  "JAB_PAPANDAYAN":"32.05.20.2008",
+  "JAB_PATUHA":"32.04.40.2005",
+  "JAB_RAKUTAK":"32.04.30.2005",
+  "JAB_SALAK":"32.01.17.2014",
+  "JAB_TANGKUBAN_PERAHU":"32.17.01.2006",
+  "JAB_WAYANG":"32.04.31.2004",
+  "JAB_PEG_MALABAR_PUNCAK_BESAR":"32.04.15.2011",
+  "JAB_PEG_MALABAR_PUNCAK_HARUMAN":"32.04.17.2004",
+  "JAB_PEG_MALABAR_PUNCAK_PUNTANG":"32.04.17.2004",
+  "JAB_TEGAL_PANJANG":"32.05.20.2008",
+};
+const EXPECTED_ADM4_CODES = [...new Set(Object.values(EXPECTED_MOUNTAIN_ADM4))].sort();
+const EXPECTED_GPXS: Record<string,{mountainCode:string;filename:string;bytes:number}> = {
+  "028baddfc29941d51c05e2c70683e9897a8ac1cbc910250a8c2032b058411856":{mountainCode:"JAB_MANGLAYANG",filename:"manglayang-gpx.gpx",bytes:6674},
+  "298bc63858f7abc868030d13a53f25efbe3c386659892d9a9175679a639a5e0b":{mountainCode:"JAB_PEG_MALABAR_PUNCAK_PUNTANG",filename:"peg-malabar-puncak-puntang-gpx.gpx",bytes:105499},
+  "33e43f9cc623dd66891709b86d6888ed526e6a41f549149ec51cf6098061479f":{mountainCode:"JAB_TANGKUBAN_PERAHU",filename:"tangkuban-perahu-gpx.gpx",bytes:208358},
+  "473294fb502ca0c581ac73b6dfa92092e14c9e906d9ab5f8ddbd4fc17e6cd332":{mountainCode:"JAB_CIKURAY",filename:"Gunung Cikuray.gpx",bytes:17290},
+  "530bcad2d7088bc1625068084516ed236d98cea81181cd552e816a35c8f6305f":{mountainCode:"JAB_CEREMAI",filename:"ceremai-gpx.gpx",bytes:166940},
+  "5b49b8e78b1e012356ab6088722a0c26276fc51b340652ddfc1add4a0d8a5525":{mountainCode:"JAB_PATUHA",filename:"patuha-gpx.gpx",bytes:118342},
+  "5cd400a05f9ffa877c7eaf339c4347fd0b7979dc7d445f83a3c272171c26905e":{mountainCode:"JAB_TEGAL_PANJANG",filename:"tegal-panjang-gpx.gpx",bytes:106697},
+  "66c0f4adb61db8e444ba4ad4a04e9c5ff782cc46a7ae16f733247faee31fee02":{mountainCode:"JAB_PAPANDAYAN",filename:"papandayan-gpx.gpx",bytes:140355},
+  "729be138526ecfdca0a7832ac25d5de56a30592a1efd1fc4ebcde6bdcda26194":{mountainCode:"JAB_KENDENG",filename:"kendeng-gpx.gpx",bytes:57160},
+  "754724d67e0044981cb981e78f1a51e001d10d0d77d3b2d17ca8438734e2ca76":{mountainCode:"JAB_PEG_MALABAR_PUNCAK_BESAR",filename:"peg-malabar-puncak-besar-gpx.gpx",bytes:96793},
+  "83a1fb1fbd450742a2cd060ebb664dda4c99332b73ceb9bb0ddc655a2f898159":{mountainCode:"JAB_GEDE_PANGRANGO",filename:"gede-pangrango-gpx.gpx",bytes:2603871},
+  "8552433a07ca73e468fa403d8362fff4a60febcbafaa1e444cf2243124f02677":{mountainCode:"JAB_SALAK",filename:"salak-gpx.gpx",bytes:377997},
+  "8b4c7347d2d51aa5e46c6f62c2afda69a5f89bda29985a54f249cf143b5f9aeb":{mountainCode:"JAB_GUNTUR_MASIGIT",filename:"guntur-masigit-gpx.gpx",bytes:135518},
+  "b3ba14eca19dab5b7602bf49d5ca865ad6939eb1cd71a0bf260561fad40f6457":{mountainCode:"JAB_RAKUTAK",filename:"rakutak-gpx.gpx",bytes:93211},
+  "cc384cda3b03099271ae63b419a3d996a7503ad3f3aecb69353d55ccd3260c2d":{mountainCode:"JAB_BURANGRANG",filename:"burangrang-gpx.gpx",bytes:29124},
+  "d16bd12ceb4582bd7ab3e1977d22113baa6249935405a3bade349665d8a106b9":{mountainCode:"JAB_PEG_MALABAR_PUNCAK_HARUMAN",filename:"peg-malabar-puncak-haruman-gpx.gpx",bytes:32404},
+  "dd82663f6188d82686faeba6b16848bf6cd28e7c7641c399e98e6195956055f0":{mountainCode:"JAB_WAYANG",filename:"wayang-gpx.gpx",bytes:7515},
+  "eb555d3ba813a9659664cced58300d781a525cbc31cce538faf5840171baa36f":{mountainCode:"JAB_BUKIT_TUNGGUL",filename:"bukit-tunggul-gpx.gpx",bytes:10924},
+  "fb3b18dc04a5d84fec5e4b1602445b8c865af997e4909dff5049d38acbca6a80":{mountainCode:"JAB_GALUNGGUNG",filename:"galunggung-gpx.gpx",bytes:118711},
+};
+
+const parser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: "@_",
+  parseTagValue: false,
+  trimValues: true,
+  removeNSPrefix: true,
+});
+
+type Obj = Record<string, unknown>;
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+  });
+}
+function isObj(value: unknown): value is Obj {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+function asArray<T>(value: T | T[] | null | undefined): T[] {
+  return value == null ? [] : Array.isArray(value) ? value : [value];
+}
+function cleanText(value: unknown, max = 500): string | null {
+  if (typeof value !== "string") return null;
+  const v = value.trim();
+  return v ? v.slice(0, max) : null;
+}
+function slug(value: unknown): string {
+  return String(value ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 100);
+}
+function parseNumeric(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+async function sha256(bytes: Uint8Array): Promise<string> {
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function consumeToken(supabase: ReturnType<typeof createClient>, _request: Request, action: string) {
+  const { data, error } = await supabase.rpc("hiking_consume_seed_action", { p_action: action });
+  return !error && data === true;
+}
+async function getSourceId(supabase: ReturnType<typeof createClient>) {
+  const { data, error } = await supabase.from("hiking_data_sources")
+    .select("source_id,permission_status,is_public,is_active")
+    .eq("code", SOURCE_CODE).single();
+  if (error || !data || data.permission_status !== "permission_required" || data.is_public !== false || data.is_active !== true) {
+    throw new Error("ASTACALA_SOURCE_REGISTRY_NOT_READY");
+  }
+  return data.source_id as string;
+}
+function parseGpxValidation(xml: string) {
+  if (!xml || /<!DOCTYPE|<!ENTITY/i.test(xml)) throw new Error("GPX_DTD_OR_ENTITY_NOT_ALLOWED");
+  if (XMLValidator.validate(xml) !== true) throw new Error("GPX_XML_INVALID");
+  const root = parser.parse(xml);
+  const gpx = isObj(root) ? root.gpx : null;
+  if (!isObj(gpx)) throw new Error("GPX_ROOT_REQUIRED");
+  const tracks = asArray(gpx.trk as Obj | Obj[] | undefined);
+  const routes = asArray(gpx.rte as Obj | Obj[] | undefined);
+  const waypoints = asArray(gpx.wpt as Obj | Obj[] | undefined);
+  let trackPoints = 0, routePoints = 0, segments = 0;
+  const coordinateCheck = (point: unknown) => {
+    if (!isObj(point)) throw new Error("GPX_POINT_INVALID");
+    const lat = Number(point["@_lat"]), lon = Number(point["@_lon"]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      throw new Error("GPX_COORDINATE_OUT_OF_RANGE");
+    }
+  };
+  for (const track of tracks) {
+    const parts = asArray(track.trkseg as Obj | Obj[] | undefined);
+    for (const part of parts) {
+      if (!isObj(part)) continue;
+      const points = asArray(part.trkpt as Obj | Obj[] | undefined);
+      for (const point of points) coordinateCheck(point);
+      trackPoints += points.length;
+      if (points.length) segments++;
+    }
+  }
+  for (const route of routes) {
+    if (!isObj(route)) continue;
+    const points = asArray(route.rtept as Obj | Obj[] | undefined);
+    for (const point of points) coordinateCheck(point);
+    routePoints += points.length;
+    if (points.length) segments++;
+  }
+  for (const point of waypoints) coordinateCheck(point);
+  const totalPoints = trackPoints + routePoints;
+  if (totalPoints > MAX_POINTS) throw new Error("GPX_POINT_LIMIT_EXCEEDED");
+  if (tracks.length + routes.length === 0 || totalPoints < 2) throw new Error("GPX_ROUTE_GEOMETRY_REQUIRED");
+  return {
+    track_count: tracks.length,
+    route_count: routes.length,
+    track_point_count: trackPoints,
+    route_point_count: routePoints,
+    waypoint_count: waypoints.length,
+    segment_count: segments,
+    point_count: totalPoints,
+    xml_valid: true,
+    coordinates_valid: true,
+    dtd_entities_rejected: true,
+    public_route_created: false,
+  };
+}
+async function handleSeedCatalog(supabase: ReturnType<typeof createClient>, body: Obj) {
+  const mountains = Array.isArray(body.mountains) ? body.mountains as Obj[] : [];
+  const weatherAreas = Array.isArray(body.weatherAreas) ? body.weatherAreas as Obj[] : [];
+  const mappings = Array.isArray(body.mappings) ? body.mappings as Obj[] : [];
+  if (mountains.length !== 20 || weatherAreas.length !== EXPECTED_ADM4_CODES.length || mappings.length !== 20 ||
+      body.source_manifest_sha256 !== JSON_MANIFEST_SHA256) {
+    return json({ error: "SEED_CATALOG_MANIFEST_MISMATCH" }, 403);
+  }
+  const suppliedMountainCodes = mountains.map((m) => cleanText(m.code, 40) ?? "").sort();
+  if (JSON.stringify(suppliedMountainCodes) !== JSON.stringify([...EXPECTED_MOUNTAIN_CODES].sort())) {
+    return json({ error: "SEED_MOUNTAIN_ALLOWLIST_MISMATCH" }, 403);
+  }
+  const suppliedAdm4 = weatherAreas.map((a) => cleanText(a.adm4_code, 20) ?? "").sort();
+  if (JSON.stringify(suppliedAdm4) !== JSON.stringify(EXPECTED_ADM4_CODES)) {
+    return json({ error: "SEED_ADM4_ALLOWLIST_MISMATCH" }, 403);
+  }
+  const expectedPairs = new Set(Object.entries(EXPECTED_MOUNTAIN_ADM4).map(([code, adm4]) => code + "|" + adm4));
+  const suppliedPairs = new Set(mappings.map((m) => String(m.mountain_code ?? "") + "|" + String(m.adm4_code ?? "")));
+  if (suppliedPairs.size !== 20 || [...expectedPairs].some((pair) => !suppliedPairs.has(pair))) {
+    return json({ error: "SEED_MAPPING_ALLOWLIST_MISMATCH" }, 403);
+  }
+  const sourceId = await getSourceId(supabase);
+  const mountainRows = mountains.map((m) => {
+    const code = cleanText(m.code, 40);
+    const name = cleanText(m.name, 180);
+    const itemSlug = slug(m.slug || name);
+    if (!code || !/^[A-Z0-9][A-Z0-9_-]{1,39}$/.test(code) || !name || !itemSlug) throw new Error("MOUNTAIN_SEED_INVALID");
+    return {
+      code, slug: itemSlug, name,
+      aliases: Array.isArray(m.aliases) ? m.aliases.filter((a) => typeof a === "string").map((a) => String(a).trim()).filter(Boolean).slice(0, 20) : [],
+      description: cleanText(m.description, 2000),
+      elevation_m: null,
+      province: cleanText(m.province, 100),
+      regency: cleanText(m.regency, 100),
+      latitude: null, longitude: null,
+      is_volcanic: null, volcanic_status: "unknown",
+      volcanic_status_source_id: null, volcanic_status_source_url: null, volcanic_status_checked_at: null,
+      operator_id: null, primary_source_id: sourceId,
+      source_reference_url: SOURCE_REFERENCE,
+      publication_status: "draft", published_at: null, verified_at: null,
+    };
+  });
+  const { data: insertedMountains, error: mountainError } = await supabase
+    .from("hiking_mountains").upsert(mountainRows, { onConflict: "code" })
+    .select("mountain_id,code,slug");
+  if (mountainError || !insertedMountains) throw new Error("MOUNTAIN_SEED_UPSERT_FAILED");
+
+  const areaRows = weatherAreas.map((a) => {
+    const adm4 = cleanText(a.adm4_code, 20);
+    const village = cleanText(a.village_name, 180);
+    const province = cleanText(a.province_name, 120);
+    const latitude = parseNumeric(a.latitude), longitude = parseNumeric(a.longitude);
+    if (!adm4 || !/^\d{2}\.\d{2}\.\d{2}\.\d{4}$/.test(adm4) || !village || !province ||
+        latitude === null || longitude === null || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      throw new Error("WEATHER_AREA_SEED_INVALID");
+    }
+    return {
+      adm4_code: adm4, village_name: village,
+      district_name: cleanText(a.district_name, 180),
+      regency_name: cleanText(a.regency_name, 180),
+      province_name: province, latitude, longitude,
+      source_url: "https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=" + adm4,
+      is_active: true,
+      reference_elevation_m: parseNumeric(a.reference_elevation_m) === null ? null : Math.round(Number(a.reference_elevation_m)),
+      reference_elevation_quality_status: a.reference_elevation_quality_status === "candidate" ? "candidate" : "unknown",
+      reference_elevation_source_id: null,
+      reference_elevation_source_url: cleanText(a.reference_elevation_source_url, 500),
+      reference_elevation_verified_at: null,
+      reference_elevation_evidence: isObj(a.reference_elevation_evidence) ? a.reference_elevation_evidence : {},
+    };
+  });
+  const { data: insertedAreas, error: areaError } = await supabase
+    .from("hiking_weather_areas").upsert(areaRows, { onConflict: "adm4_code" })
+    .select("weather_area_id,adm4_code");
+  if (areaError || !insertedAreas) throw new Error("WEATHER_AREA_SEED_UPSERT_FAILED");
+
+  const mountainIds = new Map(insertedMountains.map((m: Obj) => [String(m.code), String(m.mountain_id)]));
+  const areaIds = new Map(insertedAreas.map((a: Obj) => [String(a.adm4_code), String(a.weather_area_id)]));
+  const mappingRows = mappings.map((m) => {
+    const mountainCode = String(m.mountain_code ?? "");
+    const adm4 = String(m.adm4_code ?? "");
+    const mountainId = mountainIds.get(mountainCode), areaId = areaIds.get(adm4);
+    const checkedAt = cleanText(m.checked_at, 80);
+    const sourceUrl = cleanText(m.source_reference_url, 500);
+    if (!mountainId || !areaId || !checkedAt || !sourceUrl?.startsWith("https://")) throw new Error("WEATHER_MAPPING_SEED_INVALID");
+    return {
+      mountain_id: mountainId, weather_area_id: areaId,
+      purpose: "reference", is_primary: true,
+      verified_at: checkedAt, mapping_checked_at: checkedAt,
+      source_reference_url: sourceUrl,
+      selection_basis: cleanText(m.selection_basis, 1000),
+      mapping_caveat: cleanText(m.mapping_caveat, 2000),
+    };
+  });
+  const { error: mappingError } = await supabase.from("hiking_mountain_weather_areas")
+    .upsert(mappingRows, { onConflict: "mountain_id,weather_area_id,purpose" });
+  if (mappingError) throw new Error("WEATHER_MAPPING_SEED_UPSERT_FAILED");
+  return json({
+    action: "seed_catalog",
+    mountains: insertedMountains.length,
+    weatherAreas: insertedAreas.length,
+    mappings: mappingRows.length,
+    publicationStatus: "draft",
+    sourcePermissionStatus: "permission_required",
+    publicRoutePublished: false,
+  });
+}
+async function handleGpxUpload(supabase: ReturnType<typeof createClient>, request: Request, url: URL) {
+  const mountainCode = cleanText(url.searchParams.get("mountain_code"), 40);
+  const originalName = cleanText(request.headers.get("x-original-filename"), 180);
+  const expectedHash = cleanText(request.headers.get("x-source-sha256"), 64);
+  if (!mountainCode || !originalName || !expectedHash || !/^[0-9a-f]{64}$/.test(expectedHash)) {
+    return json({ error: "GPX_UPLOAD_METADATA_REQUIRED" }, 400);
+  }
+  const { data: mountain, error: mountainError } = await supabase.from("hiking_mountains")
+    .select("mountain_id,slug,publication_status").eq("code", mountainCode).single();
+  if (mountainError || !mountain || mountain.publication_status !== "draft") throw new Error("MOUNTAIN_CANDIDATE_NOT_FOUND");
+  const sourceId = await getSourceId(supabase);
+  const bytes = new Uint8Array(await request.arrayBuffer());
+  if (bytes.byteLength < 64 || bytes.byteLength > MAX_GPX_BYTES) return json({ error: "GPX_SIZE_INVALID" }, 413);
+  const actualHash = await sha256(bytes);
+  if (actualHash !== expectedHash) return json({ error: "GPX_SHA256_MISMATCH" }, 422);
+  const allowedFile = EXPECTED_GPXS[actualHash];
+  if (!allowedFile || allowedFile.mountainCode !== mountainCode ||
+      allowedFile.filename !== originalName || allowedFile.bytes !== bytes.byteLength) {
+    return json({ error: "GPX_NOT_IN_APPROVED_SOURCE_MANIFEST" }, 403);
+  }
+  const xml = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  const validation = parseGpxValidation(xml);
+  const storagePath = "source-candidates/pmpa-astacala/" + mountain.slug + "/" + actualHash + ".gpx";
+  const { data: existing, error: existingError } = await supabase.from("hiking_route_imports")
+    .select("import_id,storage_path,original_filename,point_count,segment_count")
+    .eq("content_sha256", actualHash).eq("source_id", sourceId).maybeSingle();
+  if (existingError) throw new Error("GPX_IMPORT_LOOKUP_FAILED");
+  if (existing) {
+    return json({ action: "upload_gpx", importId: existing.import_id, duplicate: true, storagePath: existing.storage_path,
+      pointCount: existing.point_count, segmentCount: existing.segment_count });
+  }
+  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(storagePath, bytes, {
+    contentType: "application/gpx+xml", cacheControl: "0", upsert: false,
+  });
+  if (uploadError) throw new Error("GPX_PRIVATE_STORAGE_UPLOAD_FAILED");
+  const version = cleanText(url.searchParams.get("source_version"), 80) ?? "jalur_pendakian_jawa_barat.json-v2.3.0";
+  const { data: imported, error: insertError } = await supabase.from("hiking_route_imports").insert({
+    trail_id: null, source_id: sourceId, bucket_id: BUCKET, storage_path: storagePath,
+    original_filename: originalName, content_sha256: actualHash, file_format: "gpx",
+    source_version: version, license_review_status: "pending", import_status: "pending_review",
+    point_count: validation.point_count, segment_count: validation.segment_count,
+    calculated_distance_m: null, validation_report: {
+      ...validation, importer: "hiking-data-seed-v1", source: "PMPA ASTACALA",
+      rightsReviewStatus: "not_verified", routeAssociationStatus: "not_assigned_to_public_trail",
+      publicPublicationAllowed: false,
+    },
+    imported_by_admin_id: null, source_reference_url: SOURCE_REFERENCE,
+  }).select("import_id").single();
+  if (insertError || !imported) {
+    await supabase.storage.from(BUCKET).remove([storagePath]);
+    throw new Error("GPX_IMPORT_RECORD_INSERT_FAILED");
+  }
+  return json({ action: "upload_gpx", importId: imported.import_id, duplicate: false, storagePath,
+    pointCount: validation.point_count, segmentCount: validation.segment_count, waypointCount: validation.waypoint_count });
+}
+async function handleCandidates(supabase: ReturnType<typeof createClient>, body: Obj) {
+  const mountainCode = cleanText(body.mountain_code, 40);
+  const importId = cleanText(body.import_id, 64);
+  const routeCandidates = Array.isArray(body.route_candidates) ? body.route_candidates as Obj[] : [];
+  const checkpointCandidates = Array.isArray(body.checkpoint_candidates) ? body.checkpoint_candidates as Obj[] : [];
+  if (!mountainCode || !importId || routeCandidates.length > 200 || checkpointCandidates.length > 500) {
+    return json({ error: "CANDIDATE_PAYLOAD_INVALID" }, 400);
+  }
+  const { data: mountain, error: mountainError } = await supabase.from("hiking_mountains")
+    .select("mountain_id").eq("code", mountainCode).single();
+  if (mountainError || !mountain) throw new Error("MOUNTAIN_CANDIDATE_NOT_FOUND");
+  const { data: imported, error: importError } = await supabase.from("hiking_route_imports")
+    .select("import_id,trail_id,license_review_status,import_status,source_reference_url,content_sha256,original_filename,validation_report")
+    .eq("import_id", importId).eq("source_id", await getSourceId(supabase)).single();
+  const allowedFile = imported ? EXPECTED_GPXS[String(imported.content_sha256)] : null;
+  if (importError || !imported || imported.trail_id !== null ||
+      imported.license_review_status !== "pending" || imported.import_status !== "pending_review" ||
+      !allowedFile || allowedFile.mountainCode !== mountainCode || allowedFile.filename !== imported.original_filename ||
+      routeCandidates.length !== Number((imported.validation_report as Obj)?.track_count ?? -1) ||
+      checkpointCandidates.length !== Number((imported.validation_report as Obj)?.waypoint_count ?? -1)) {
+    throw new Error("GPX_IMPORT_NOT_ELIGIBLE_FOR_CANDIDATE_STAGING");
+  }
+  const routes = routeCandidates.map((r) => {
+    const route = isObj(r.route_geojson) ? r.route_geojson : null;
+    const coords = route && Array.isArray(route.coordinates) ? route.coordinates : [];
+    if (!route || route.type !== "MultiLineString" || !coords.length ||
+        !coords.every((line) => Array.isArray(line) && line.length >= 2 &&
+          line.every((pair) => Array.isArray(pair) && pair.length >= 2 &&
+            Number.isFinite(Number(pair[0])) && Number.isFinite(Number(pair[1])) &&
+            Math.abs(Number(pair[0])) <= 180 && Math.abs(Number(pair[1])) <= 90))) {
+      throw new Error("ROUTE_CANDIDATE_GEOJSON_INVALID");
+    }
+    const pointCount = Number(r.point_count);
+    const segmentCount = Number(r.segment_count);
+    if (!Number.isInteger(pointCount) || pointCount < 2 || !Number.isInteger(segmentCount) || segmentCount < 1) {
+      throw new Error("ROUTE_CANDIDATE_COUNTS_INVALID");
+    }
+    const candidateCode = cleanText(r.candidate_code, 120);
+    const sourceTrackIndex = Number(r.source_track_index);
+    if (!candidateCode || !Number.isInteger(sourceTrackIndex) || sourceTrackIndex < 1) {
+      throw new Error("ROUTE_CANDIDATE_IDENTITY_INVALID");
+    }
+    return {
+      mountain_id: mountain.mountain_id, import_id: importId,
+      candidate_code: candidateCode,
+      source_track_index: sourceTrackIndex,
+      source_track_name: cleanText(r.source_track_name, 180),
+      source_type: r.source_type === "route" ? "route" : "track",
+      segment_count: segmentCount, point_count: pointCount,
+      distance_m: parseNumeric(r.distance_m) === null ? null : Math.round(Number(r.distance_m)),
+      elevation_min_candidate_m: parseNumeric(r.elevation_min_candidate_m),
+      elevation_max_candidate_m: parseNumeric(r.elevation_max_candidate_m),
+      elevation_coverage_percent: Math.max(0, Math.min(100, Number(r.elevation_coverage_percent) || 0)),
+      route_geojson: route,
+      trail_association_status: "not_assigned_to_public_trail",
+      verification_status: "candidate_requires_review",
+      source_metadata: isObj(r.source_metadata) ? r.source_metadata : {},
+      updated_at: new Date().toISOString(),
+    };
+  });
+  const checkpoints = checkpointCandidates.map((c) => {
+    const metadata = isObj(c.source_metadata) ? c.source_metadata : {};
+    const name = cleanText(c.name, 200);
+    const lat = parseNumeric(c.latitude), lon = parseNumeric(c.longitude);
+    const code = cleanText(c.candidate_code, 120);
+    if (!name || !code || lat === null || lon === null || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+      throw new Error("CHECKPOINT_CANDIDATE_INVALID");
+    }
+    const requestedVerified = parseNumeric(c.verified_elevation_m);
+    if (requestedVerified !== null) throw new Error("CANDIDATE_ELEVATION_MUST_REMAIN_UNVERIFIED");
+    const rawStatus = cleanText(c.elevation_verification_status, 120) ?? "pending_review";
+    const allowedStatuses = new Set(["pending_review","dem_cross_checked_consistent_pending_ground_truth",
+      "track_profile_dem_corroborated_pending_manual_review","dem_only_estimate_pending_manual_review",
+      "source_elevation_value_suspicious_pending_review","dem_models_disagree_pending_review","gpx_waypoint_and_name_label_conflict"]);
+    return {
+      mountain_id: mountain.mountain_id, import_id: importId, candidate_code: code,
+      source_index: Number(c.source_index), name,
+      checkpoint_type_candidate: cleanText(c.checkpoint_type_candidate, 80) ?? "waypoint",
+      location_role_candidate: cleanText(c.location_role_candidate, 80) ?? "unknown",
+      latitude: lat, longitude: lon,
+      gpx_elevation_m: parseNumeric(c.gpx_elevation_m),
+      waypoint_label_elevation_m: parseNumeric(c.waypoint_label_elevation_m),
+      candidate_elevation_m: parseNumeric(c.candidate_elevation_m),
+      verified_elevation_m: null,
+      elevation_verification_status: allowedStatuses.has(rawStatus) ? rawStatus : "pending_review",
+      trail_association_status: "not_assigned_to_public_trail",
+      source_reference_url: SOURCE_REFERENCE,
+      source_metadata: metadata,
+      updated_at: new Date().toISOString(),
+    };
+  });
+  for (let i = 0; i < routes.length; i += 40) {
+    const { error } = await supabase.from("hiking_route_candidates")
+      .upsert(routes.slice(i, i + 40), { onConflict: "import_id,candidate_code" });
+    if (error) throw new Error("ROUTE_CANDIDATE_SAVE_FAILED");
+  }
+  for (let i = 0; i < checkpoints.length; i += 80) {
+    const { error } = await supabase.from("hiking_checkpoint_candidates")
+      .upsert(checkpoints.slice(i, i + 80), { onConflict: "import_id,candidate_code" });
+    if (error) throw new Error("CHECKPOINT_CANDIDATE_SAVE_FAILED");
+  }
+  return json({ action: "seed_candidates", mountainCode, importId, routeCandidates: routes.length,
+    checkpointCandidates: checkpoints.length, associationStatus: "not_assigned_to_public_trail",
+    elevationStatus: "candidate_only", verifiedElevationWritten: false });
+}
+
+Deno.serve(async (request: Request) => {
+  if (request.method === "OPTIONS") return new Response("ok", { headers: { "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "content-type, x-akasha-seed-token, x-original-filename, x-source-sha256" } });
+  if (request.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405);
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) return json({ error: "SERVER_CONFIGURATION_MISSING" }, 500);
+  const supabase = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+  const url = new URL(request.url);
+  const action = url.searchParams.get("action") ?? "";
+  if (!["seed_catalog","upload_gpx","seed_candidates"].includes(action)) return json({ error: "UNKNOWN_SEED_ACTION" }, 400);
+  if (!await consumeToken(supabase, request, action)) return json({ error: "SEED_TOKEN_INVALID_OR_EXPIRED" }, 403);
+  try {
+    if (action === "upload_gpx") return await handleGpxUpload(supabase, request, url);
+    const raw = await request.text();
+    if (new TextEncoder().encode(raw).byteLength > MAX_JSON_BYTES) return json({ error: "SEED_JSON_TOO_LARGE" }, 413);
+    let body: unknown;
+    try { body = JSON.parse(raw); } catch { return json({ error: "INVALID_JSON" }, 400); }
+    if (!isObj(body)) return json({ error: "INVALID_BODY" }, 400);
+    if (action === "seed_catalog") return await handleSeedCatalog(supabase, body);
+    return await handleCandidates(supabase, body);
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "SEED_IMPORT_FAILED";
+    console.error("hiking-data-seed failed", code);
+    return json({ error: code }, 500);
+  }
+});

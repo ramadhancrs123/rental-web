@@ -18,6 +18,8 @@ export type HikingMountain = {
   operator_name?: string | null
   operator_website_url?: string | null
   verified_at?: string | null
+  source_reference_url?: string | null
+  primary_source_name?: string | null
   bmkg_adm4_codes?: string[] | null
   dataAvailability?: {
     coordinates?: boolean
@@ -27,24 +29,6 @@ export type HikingMountain = {
   }
 }
 
-export type HikingDestination = HikingMountain & {
-  sourceSlug: string
-  sourceMapEmbedUrl: string | null
-  sourceMapViewUrl: string | null
-  sourcePageUrl: string | null
-  sourceGpxUrl: string | null
-  sourceKmzUrl: string | null
-  sourcePdfUrl: string | null
-  sourceMapTitle: string
-  sourceRouteLabelText: string | null
-  sourceMapLabelsNote: string | null
-  weatherAdm4: string | null
-  weatherVillage: string | null
-  weatherRouteReference: string | null
-  weatherReferenceElevationM: number | null
-  weatherReferenceElevationStatus: string | null
-  weatherForecastPageUrl: string | null
-}
 
 export type HikingTrail = {
   trail_id: string
@@ -99,6 +83,7 @@ export type HikingCheckpoint = {
   latitude?: number | null
   longitude?: number | null
   elevation_m?: number | null
+  elevation_quality_status?: string | null
   elevation_source_url?: string | null
   verified_at?: string | null
   temperature_estimate_public_eligible?: boolean
@@ -174,6 +159,25 @@ export type HikingResourceResponse<T> = {
   [key: string]: unknown
 }
 
+export type HikingTemperaturePoint = {
+  checkpointId: string
+  sequenceNumber: number
+  code: string | null
+  name: string
+  checkpointType: string
+  elevationM: number
+  estimatedTemperatureC: number
+  elevationQualityStatus?: string
+}
+
+export type HikingTemperatureEstimates = {
+  status: "available" | "not_available"
+  reason: string | null
+  model: { code: string; version: string; lapseRateCPerKm: number; description?: string }
+  reference: { elevationM: number; sourceName: string | null; sourceUrl: string | null; verifiedAt: string; qualityStatus?: string } | null
+  periods: Array<{ datetime: string; referenceTemperatureC: number; points: HikingTemperaturePoint[] }>
+}
+
 export type HikingWeatherResponse = {
   source: {
     code: string
@@ -202,6 +206,7 @@ export type HikingWeatherResponse = {
     cuaca?: Array<Array<Record<string, unknown>>>
     [key: string]: unknown
   }>
+  temperatureEstimates?: HikingTemperatureEstimates
   bmkgLocation?: Record<string, unknown> | null
   error?: string
   message?: string
@@ -323,34 +328,4 @@ export function formatIndonesianDate(value?: string | null): string | null {
 
 export function cleanDescription(value?: string | null): string {
   return value?.trim() ?? ""
-}
-
-
-export async function requestSourceHikingWeather(
-  target: { mountainSlug?: string; adm4?: string },
-  signal?: AbortSignal,
-): Promise<HikingWeatherResponse> {
-  if (Boolean(target.mountainSlug) === Boolean(target.adm4)) {
-    throw new Error("Pilih tepat satu sumber cuaca destinasi atau kode wilayah.")
-  }
-  const params = new URLSearchParams()
-  if (target.mountainSlug) params.set("mountainSlug", target.mountainSlug)
-  if (target.adm4) params.set("adm4", target.adm4)
-  const response = await fetch("/api/hiking/forecast?" + params.toString(), {
-    method: "GET",
-    headers: { Accept: "application/json" },
-    cache: "no-store",
-    signal: signal ?? AbortSignal.timeout(12_000),
-  })
-  const payload: unknown = await response.json().catch(() => null)
-  if (!response.ok) {
-    const record = payload && typeof payload === "object" ? payload as Record<string, unknown> : {}
-    const code = typeof record.error === "string" ? record.error : "WEATHER_UNAVAILABLE"
-    const message = typeof record.message === "string" ? record.message : "Prakiraan BMKG belum dapat dimuat."
-    throw new Error(code + ": " + message)
-  }
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new Error("Respons prakiraan cuaca tidak valid.")
-  }
-  return payload as HikingWeatherResponse
 }

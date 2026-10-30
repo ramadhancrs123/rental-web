@@ -1,0 +1,151 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { AlertCircle, CloudSun, Droplets, RefreshCw, Wind } from "lucide-react"
+import { type HikingWeatherResponse, formatIndonesianDate, requestHikingWeather } from "@/lib/hiking"
+
+type Props = { mountainSlug?: string; trailSlug?: string }
+
+function friendlyError(message: string) {
+  if (message.includes("WEATHER_AREA_NOT_CONFIGURED")) return "Wilayah prakiraan BMKG belum ditetapkan dan diverifikasi untuk destinasi ini."
+  if (message.includes("WEATHER_AREA_INACTIVE")) return "Wilayah referensi cuaca belum aktif. Informasi prakiraan akan tersedia setelah konfigurasi diverifikasi."
+  if (message.includes("DESTINATION_NOT_FOUND") || message.includes("TRAIL_NOT_FOUND")) return "Destinasi belum tersedia dalam katalog publik."
+  if (message.includes("FEATURE_DISABLED")) return "Informasi cuaca untuk katalog ini belum diaktifkan."
+  return "Prakiraan BMKG belum dapat dimuat. Periksa kembali nanti dan rujuk informasi resmi sebelum berangkat."
+}
+
+function getPeriods(data: HikingWeatherResponse) {
+  const items = (data.forecast ?? []).flatMap((group) => {
+    const rows = group.cuaca
+    return Array.isArray(rows) ? rows.flat().filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object")) : []
+  })
+
+  const unique = new Map<string, Record<string, unknown>>()
+  const now = Date.now()
+  for (const item of items) {
+    const dateTime = typeof item.local_datetime === "string" ? item.local_datetime : typeof item.datetime === "string" ? item.datetime : null
+    if (!dateTime) continue
+    const date = new Date(dateTime)
+    if (Number.isNaN(date.getTime()) || date.getTime() < now - 60 * 60 * 1000) continue
+    const key = dateTime.slice(0, 10)
+    if (!unique.has(key)) unique.set(key, item)
+  }
+  return [...unique.values()].slice(0, 3)
+}
+
+function displayTime(value: unknown) {
+  if (typeof value !== "string") return null
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat("id-ID", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }).format(parsed)
+}
+
+function numeric(value: unknown, suffix: string) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? Math.round(parsed) + suffix : null
+}
+
+export default function HikingWeatherPanel({ mountainSlug, trailSlug }: Props) {
+  const [data, setData] = useState<HikingWeatherResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [completedKey, setCompletedKey] = useState<string | null>(null)
+  const [retry, setRetry] = useState(0)
+  const requestKey = (mountainSlug ?? "") + ":" + (trailSlug ?? "") + ":" + retry
+  const loading = completedKey !== requestKey
+
+  useEffect(() => {
+    const controller = new AbortController()
+    requestHikingWeather({ mountain: mountainSlug, trail: trailSlug }, controller.signal)
+      .then((result) => { if (!controller.signal.aborted) { setData(result); setError(null) } })
+      .catch((cause: unknown) => {
+        if (!controller.signal.aborted) {
+          setData(null)
+          setError(cause instanceof Error ? cause.message : "WEATHER_UNAVAILABLE")
+        }
+      })
+      .finally(() => { if (!controller.signal.aborted) setCompletedKey(requestKey) })
+    return () => controller.abort()
+  }, [mountainSlug, trailSlug, retry, requestKey])
+
+  const visibleData = loading ? null : data
+  const visibleError = loading ? null : error
+  const periods = visibleData ? getPeriods(visibleData) : []
+  const currentSourceUrl = visibleData?.source?.sourceUrl || "https://data.bmkg.go.id/prakiraan-cuaca/"
+
+  return (
+    <section className="overflow-hidden rounded-3xl border border-border/60 bg-card">
+      <div className="flex items-start gap-3 border-b border-border/60 p-5 sm:p-6">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-700 dark:text-sky-300"><CloudSun className="size-5" /></span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-semibold tracking-tight">Prakiraan cuaca BMKG</h2>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">Referensi cuaca wilayah · bukan pengamatan langsung di jalur atau puncak.</p>
+        </div>
+      </div>
+
+      <div className="p-5 sm:p-6">
+        {loading && (
+          <div className="space-y-3" role="status" aria-live="polite">
+            <div className="h-20 animate-pulse rounded-2xl bg-muted" />
+            <div className="grid grid-cols-3 gap-2"><div className="h-20 animate-pulse rounded-xl bg-muted" /><div className="h-20 animate-pulse rounded-xl bg-muted" /><div className="h-20 animate-pulse rounded-xl bg-muted" /></div>
+            <span className="sr-only">Memuat prakiraan cuaca BMKG</span>
+          </div>
+        )}
+
+        {!loading && visibleError && (
+          <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-4">
+            <div className="flex items-start gap-2.5"><AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" /><p className="text-sm leading-6 text-muted-foreground">{friendlyError(visibleError ?? "")}</p></div>
+            <button type="button" onClick={() => setRetry((value) => value + 1)} className="mt-3 inline-flex h-9 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-xs font-semibold transition hover:bg-muted"><RefreshCw className="size-3.5" /> Coba lagi</button>
+          </div>
+        )}
+
+        {!loading && data && (
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-sky-500/10 via-primary/[0.04] to-transparent p-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{data.location.village}{data.location.district ? ", " + data.location.district : ""}</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{[data.location.regency, data.location.province].filter(Boolean).join(", ")}</p>
+                <p className="mt-2 text-[10px] leading-5 text-muted-foreground">Kode wilayah BMKG: {data.location.adm4Code}</p>
+              </div>
+              <span className={"inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] font-semibold " + (data.stale ? "bg-amber-500/10 text-amber-700 dark:text-amber-300" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300")}>
+                <span className={"size-1.5 rounded-full " + (data.stale ? "bg-amber-500" : "bg-emerald-500")} />
+                {data.stale ? "Cache lama" : "Data tersedia"}
+              </span>
+            </div>
+
+            {data.stale && <p className="text-xs leading-5 text-amber-700 dark:text-amber-300">Pembaruan dari BMKG sedang terkendala. Data lama ditampilkan sebagai referensi, bukan kondisi terkini.</p>}
+
+            {periods.length > 0 ? (
+              <div className="grid gap-2 sm:grid-cols-3">
+                {periods.map((item, index) => {
+                  const date = typeof item.local_datetime === "string" ? item.local_datetime : item.datetime
+                  const temperature = numeric(item.t, "°C")
+                  const rain = numeric(item.tp, " mm")
+                  const wind = numeric(item.ws, " km/j")
+                  return (
+                    <article key={String(date ?? index)} className="rounded-2xl border border-border/60 bg-background p-3.5">
+                      <p className="text-[10px] font-medium leading-4 text-muted-foreground">{displayTime(date)}</p>
+                      <p className="mt-2 min-h-9 text-sm font-semibold leading-5">{typeof item.weather_desc === "string" ? item.weather_desc : "Prakiraan tersedia"}</p>
+                      {temperature && <p className="mt-2 text-2xl font-semibold tracking-tight">{temperature}</p>}
+                      <div className="mt-3 space-y-1.5 border-t border-border/60 pt-3 text-[10px] text-muted-foreground">
+                        {rain && <p className="flex items-center gap-1.5"><Droplets className="size-3" /> Hujan: {rain}</p>}
+                        {wind && <p className="flex items-center gap-1.5"><Wind className="size-3" /> Angin: {wind}</p>}
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border p-4 text-sm leading-6 text-muted-foreground">Data prakiraan tersedia dari BMKG, tetapi periode yang dapat ditampilkan belum terbaca. Silakan periksa sumber resmi.</div>
+            )}
+
+            <div className="space-y-1.5 text-[11px] leading-5 text-muted-foreground">
+              <p>{data.location.scopeNotice}</p>
+              <p>Analisis BMKG: {formatIndonesianDate(data.analysisDate) ?? "Waktu analisis belum tersedia"} · Diambil: {formatIndonesianDate(data.fetchedAt) ?? "Waktu pengambilan belum tersedia"}.</p>
+              <p>Sumber: <a href={currentSourceUrl} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-2 hover:text-foreground">BMKG</a>.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}

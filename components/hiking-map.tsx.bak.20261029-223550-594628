@@ -1,0 +1,278 @@
+"use client"
+
+import type { Feature, FeatureCollection, Geometry } from "geojson"
+
+import { useEffect, useRef, useState } from "react"
+import type { HikingCheckpoint, HikingMountain } from "@/lib/hiking"
+import "maplibre-gl/dist/maplibre-gl.css"
+
+const MAP_STYLE_URL = process.env.NEXT_PUBLIC_MAPTOOLKIT_STYLE_URL || "https://styles.maptoolkit.org/hiking.json"
+const DEFAULT_CENTER: [number, number] = [107.9, -7.2]
+
+type HikingMapProps = {
+  mountains?: HikingMountain[]
+  activeMountainSlug?: string | null
+  onSelectMountain?: (slug: string) => void
+  routeGeoJSON?: unknown
+  checkpoints?: HikingCheckpoint[]
+  className?: string
+  label?: string
+}
+
+type MapLibreMap = import("maplibre-gl").Map
+type MapLibreMarker = import("maplibre-gl").Marker
+
+function normalizeRoute(value: unknown): FeatureCollection | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  const item = value as Record<string, unknown>
+  if (item.type === "FeatureCollection" && Array.isArray(item.features)) {
+    return item as unknown as FeatureCollection
+  }
+  if (item.type === "Feature" && item.geometry && typeof item.geometry === "object") {
+    return { type: "FeatureCollection", features: [item as unknown as Feature] }
+  }
+  if (typeof item.type === "string" && item.coordinates !== undefined) {
+    return {
+      type: "FeatureCollection",
+      features: [{ type: "Feature", properties: {}, geometry: item as unknown as Geometry }],
+    }
+  }
+  return null
+}
+
+function validCoordinate(latitude?: number | null, longitude?: number | null): latitude is number {
+  return latitude !== null && latitude !== undefined && Number.isFinite(latitude)
+    && longitude !== null && longitude !== undefined && Number.isFinite(longitude)
+    && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
+}
+
+function collectRoutePoints(value: unknown): [number, number][] {
+  const route = normalizeRoute(value)
+  if (!route) return []
+  const points: [number, number][] = []
+  const visit = (node: unknown) => {
+    if (!Array.isArray(node)) return
+    if (node.length >= 2 && typeof node[0] === "number" && typeof node[1] === "number") {
+      if (Number.isFinite(node[0]) && Number.isFinite(node[1]) && Math.abs(node[0]) <= 180 && Math.abs(node[1]) <= 90) {
+        points.push([node[0], node[1]])
+      }
+      return
+    }
+    node.forEach(visit)
+  }
+  route.features.forEach((feature) => {
+    if (feature.geometry && "coordinates" in feature.geometry) visit(feature.geometry.coordinates)
+  })
+  return points
+}
+
+export default function HikingMap({
+  mountains = [],
+  activeMountainSlug,
+  onSelectMountain,
+  routeGeoJSON,
+  checkpoints = [],
+  className = "",
+  label = "Peta interaktif destinasi pendakian",
+}: HikingMapProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<MapLibreMap | null>(null)
+  const markerRefs = useRef<MapLibreMarker[]>([])
+  const checkpointMarkerRefs = useRef<MapLibreMarker[]>([])
+  const onSelectRef = useRef(onSelectMountain)
+  const [mapReady, setMapReady] = useState(false)
+  const [mapError, setMapError] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
+
+  useEffect(() => { onSelectRef.current = onSelectMountain }, [onSelectMountain])
+
+  useEffect(() => {
+    let disposed = false
+    let attributionReady = false
+    let timeoutId: number | undefined
+    let map: MapLibreMap | null = null
+
+    async function initializeMap() {
+      if (!containerRef.current) return
+      setMapReady(false)
+      setMapError(false)
+
+      try {
+        const maplibregl = await import("maplibre-gl")
+        if (disposed || !containerRef.current) return
+
+        map = new maplibregl.Map({
+          container: containerRef.current,
+          style: MAP_STYLE_URL,
+          center: DEFAULT_CENTER,
+          zoom: 8,
+          attributionControl: { compact: false },
+          cooperativeGestures: true,
+          maxPitch: 65,
+        })
+        mapRef.current = map
+        map.addControl(new maplibregl.NavigationControl({ showCompass: true }), "top-right")
+        map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-right")
+
+        try {
+          const logoModule = await import("@maptoolkit/maplibre-gl-logo")
+          if (disposed || !map) return
+          map.addControl(new logoModule.MaptoolkitLogoControl({ position: "bottom-left" }))
+          attributionReady = true
+        } catch {
+          // The logo control is part of the required Maptoolkit attribution contract.
+          // Treat a missing control as a map setup failure rather than hiding attribution.
+          setMapError(true)
+        }
+
+        map.once("load", () => {
+          if (disposed) return
+          setMapReady(true)
+          setMapError(!attributionReady)
+          if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+        })
+        map.on("error", (event) => {
+          if (!disposed && !map?.isStyleLoaded()) {
+            setMapError(true)
+          }
+          void event
+        })
+        timeoutId = window.setTimeout(() => {
+          if (!disposed && !map?.loaded()) setMapError(true)
+        }, 18_000)
+      } catch {
+        if (!disposed) setMapError(true)
+      }
+    }
+
+    void initializeMap()
+
+    return () => {
+      disposed = true
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+      markerRefs.current.forEach((marker) => marker.remove())
+      checkpointMarkerRefs.current.forEach((marker) => marker.remove())
+      markerRefs.current = []
+      checkpointMarkerRefs.current = []
+      map?.remove()
+      mapRef.current = null
+      setMapReady(false)
+    }
+  }, [retryKey])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    markerRefs.current.forEach((marker) => marker.remove())
+    markerRefs.current = []
+
+    for (const mountain of mountains) {
+      if (!validCoordinate(mountain.latitude, mountain.longitude)) continue
+      const maplibreglButton = document.createElement("button")
+      maplibreglButton.type = "button"
+      maplibreglButton.className = "hiking-map-marker" + (mountain.slug === activeMountainSlug ? " is-active" : "")
+      maplibreglButton.setAttribute("aria-label", "Pilih " + mountain.name)
+      maplibreglButton.title = mountain.name
+      maplibreglButton.textContent = " "
+      maplibreglButton.addEventListener("click", () => onSelectRef.current?.(mountain.slug))
+      import("maplibre-gl").then((maplibregl) => {
+        if (mapRef.current !== map || !mapReady) return
+        const marker = new maplibregl.Marker({ element: maplibreglButton, anchor: "bottom" })
+          .setLngLat([Number(mountain.longitude), Number(mountain.latitude)])
+          .addTo(map)
+        markerRefs.current.push(marker)
+      })
+    }
+
+    const active = mountains.find((mountain) => mountain.slug === activeMountainSlug)
+    if (active && validCoordinate(active.latitude, active.longitude)) {
+      map.easeTo({
+        center: [Number(active.longitude), Number(active.latitude)],
+        zoom: Math.max(map.getZoom(), 9.5),
+        duration: 600,
+      })
+    }
+  }, [mountains, activeMountainSlug, mapReady])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    const route = normalizeRoute(routeGeoJSON)
+    const sourceId = "akasha-hiking-route"
+    const layerId = "akasha-hiking-route-line"
+
+    if (map.getLayer(layerId)) map.removeLayer(layerId)
+    if (map.getSource(sourceId)) map.removeSource(sourceId)
+    if (route) {
+      map.addSource(sourceId, { type: "geojson", data: route })
+      map.addLayer({
+        id: layerId,
+        type: "line",
+        source: sourceId,
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#e97832", "line-width": 4, "line-opacity": 0.95 },
+      })
+    }
+
+    checkpointMarkerRefs.current.forEach((marker) => marker.remove())
+    checkpointMarkerRefs.current = []
+    void import("maplibre-gl").then((maplibregl) => {
+      if (mapRef.current !== map || !mapReady) return
+      checkpoints.filter((point) => validCoordinate(point.latitude, point.longitude)).forEach((point, index) => {
+        const markerElement = document.createElement("span")
+        markerElement.className = "hiking-checkpoint-marker"
+        markerElement.textContent = String(point.sequence_number ?? index + 1)
+        markerElement.setAttribute("aria-label", point.name)
+        const popup = new maplibregl.Popup({ offset: 18, closeButton: true, maxWidth: "240px" })
+          .setText([point.name, point.elevation_m ? point.elevation_m + " mdpl" : "", point.description ?? ""].filter(Boolean).join(" · "))
+        const marker = new maplibregl.Marker({ element: markerElement, anchor: "bottom" })
+          .setLngLat([Number(point.longitude), Number(point.latitude)])
+          .setPopup(popup)
+          .addTo(map)
+        checkpointMarkerRefs.current.push(marker)
+      })
+
+      const routePoints = collectRoutePoints(routeGeoJSON)
+      if (routePoints.length > 1) {
+        const bounds = new maplibregl.LngLatBounds(routePoints[0], routePoints[0])
+        routePoints.slice(1).forEach((point) => bounds.extend(point))
+        map.fitBounds(bounds, {
+          padding: { top: 48, right: 48, bottom: 64, left: 48 },
+          maxZoom: 14,
+          duration: 450,
+        })
+      }
+    })
+
+    return () => {
+      checkpointMarkerRefs.current.forEach((marker) => marker.remove())
+      checkpointMarkerRefs.current = []
+    }
+  }, [routeGeoJSON, checkpoints, mapReady])
+
+  return (
+    <div className={"hiking-map-shell relative isolate overflow-hidden rounded-[1.5rem] border border-border/60 bg-muted " + className}>
+      <div ref={containerRef} role="img" aria-label={label} className="h-full min-h-[300px] w-full" />
+      {!mapReady && !mapError && (
+        <div className="absolute inset-0 z-10 grid place-items-center bg-background/65 p-6 text-center backdrop-blur-[2px]" role="status" aria-live="polite">
+          <div>
+            <span className="mx-auto flex size-11 items-center justify-center rounded-2xl border border-border bg-card text-primary"><span className="hiking-map-loading-dot" /></span>
+            <p className="mt-3 text-sm font-semibold">Menyiapkan peta outdoor</p>
+            <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">Memuat peta dasar dan informasi geografis.</p>
+          </div>
+        </div>
+      )}
+      {mapError && (
+        <div className="absolute inset-0 z-10 grid place-items-center bg-background/95 p-6 text-center">
+          <div className="max-w-sm">
+            <span className="mx-auto flex size-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-700 dark:text-amber-300"><span className="text-lg">!</span></span>
+            <p className="mt-3 text-sm font-semibold">Peta belum dapat dimuat</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Daftar dan informasi yang tersedia tetap dapat digunakan. Coba muat ulang peta.</p>
+            <button type="button" onClick={() => setRetryKey((key) => key + 1)} className="mt-4 inline-flex h-9 items-center justify-center rounded-full border border-border px-4 text-xs font-semibold transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Muat ulang peta</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

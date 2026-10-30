@@ -1,0 +1,326 @@
+{
+  "dataset_id": "hiking:jawa-barat:catalog",
+  "validated_at": "2026-10-30",
+  "validation_status": "passed",
+  "schema_status": "province-catalog draft-2020-12 schema keywords validated by local validator",
+  "checks": {
+    "all_json_files_parse": "passed",
+    "20_mountain_records": "passed",
+    "source_ids_resolve": "passed",
+    "all_source_coordinates_wgs84": "passed",
+    "local_gpx_sha256_and_trackpoint_integrity": "passed",
+    "raw_track_and_waypoint_labels_preserved": "passed",
+    "derived_elevation_and_route_metrics_excluded": "passed",
+    "supabase_route_geometry_reconciliation": "passed_120_of_120",
+    "supabase_checkpoint_reconciliation": "passed_315_of_315_with_numeric_6dp_rounding",
+    "province_operational_restriction": "passed",
+    "publication_guard": "passed",
+    "province_catalog_json_schema": "passed",
+    "exact_raw_gpx_track_waypoint_reconciliation": "failed",
+    "official_status_updates_papandayan_ciremai_gede": "recorded_with_source_timestamps",
+    "database_route_candidate_to_published_geometry": "120_of_120_exact_geojson_matches",
+    "database_checkpoint_candidate_to_published_record": "315_of_315_name_and_6dp_coordinate_matches",
+    "exact_raw_gpx_track_and_waypoint_comparison": "passed",
+    "canonical_gpx_sha256": "19_of_19_passed",
+    "raw_ceremai_duplicate_sha256": "passed",
+    "supabase_route_candidate_exact_geometry": "120_of_120",
+    "supabase_checkpoint_candidate_matching": "315_of_315",
+    "all_raw_gpx_files_hash_checked": "passed",
+    "all_raw_waypoint_labels_and_coordinates_match": "passed",
+    "trackpoint_and_segment_counts_match": "passed",
+    "source_track_access_proximity_provenance": "passed",
+    "exact_duplicate_track_geometry_detected_and_linked": "passed",
+    "derived_elevation_and_calculation_metrics_excluded": "passed",
+    "raw_track_waypoint_integrity": "passed",
+    "source_track_access_match_refs": "passed",
+    "exact_duplicate_track_detection": "passed",
+    "no_elevation_or_derived_metrics_added": "passed"
+  },
+  "counts": {
+    "mountains": 20,
+    "sources": 40,
+    "local_gpx_assets": 19,
+    "source_tracks": 120,
+    "trackpoints": 57473,
+    "raw_waypoints": 315,
+    "database_trails_reconciled": 120,
+    "database_checkpoints_reconciled": 315,
+    "local_gpx_files": 19,
+    "unique_gpx_content_hashes": 19,
+    "database_published_trails": 120,
+    "database_route_candidates_exactly_matching": 120,
+    "database_published_checkpoints": 315,
+    "database_checkpoint_candidates_matching": 315,
+    "raw_local_gpx_files": 20,
+    "canonical_indexed_gpx_assets": 19,
+    "unique_indexed_gpx_hashes": 19,
+    "duplicate_raw_gpx_files": 1,
+    "database_exact_route_geometry_matches": 120,
+    "database_checkpoint_candidate_matches": 315,
+    "raw_gpx_files": 20,
+    "unique_canonical_gpx_hashes": 19,
+    "duplicate_raw_gpx_assets": 1,
+    "exact_duplicate_track_records": 6,
+    "source_track_access_match_groups": 44,
+    "database_route_candidates_exact_geometry_matches": 120,
+    "canonical_gpx_assets": 19,
+    "tracks": 120,
+    "unique_track_sequences": 114,
+    "trackpoint_records_including_duplicates": 57473
+  },
+  "source_integrity": {
+    "canonical_gpx_checks": [
+      {
+        "path": "gpx/jawa-barat/bukit-tunggul-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 1,
+        "trackpoints": 180,
+        "waypoints": 3
+      },
+      {
+        "path": "gpx/jawa-barat/burangrang-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 1,
+        "trackpoints": 496,
+        "waypoints": 10
+      },
+      {
+        "path": "gpx/jawa-barat/ceremai-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 9,
+        "trackpoints": 1998,
+        "waypoints": 43
+      },
+      {
+        "path": "gpx/jawa-barat/Gunung Cikuray.gpx",
+        "sha256_match": true,
+        "tracks": 3,
+        "trackpoints": 268,
+        "waypoints": 20
+      },
+      {
+        "path": "gpx/jawa-barat/galunggung-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 3,
+        "trackpoints": 2075,
+        "waypoints": 23
+      },
+      {
+        "path": "gpx/jawa-barat/gede-pangrango-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 16,
+        "trackpoints": 32724,
+        "waypoints": 36
+      },
+      {
+        "path": "gpx/jawa-barat/guntur-masigit-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 10,
+        "trackpoints": 2386,
+        "waypoints": 10
+      },
+      {
+        "path": "gpx/jawa-barat/kendeng-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 4,
+        "trackpoints": 659,
+        "waypoints": 12
+      },
+      {
+        "path": "gpx/jawa-barat/manglayang-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 4,
+        "trackpoints": 96,
+        "waypoints": 7
+      },
+      {
+        "path": "gpx/jawa-barat/papandayan-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 14,
+        "trackpoints": 2069,
+        "waypoints": 13
+      },
+      {
+        "path": "gpx/jawa-barat/patuha-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 9,
+        "trackpoints": 2084,
+        "waypoints": 7
+      },
+      {
+        "path": "gpx/jawa-barat/peg-malabar-puncak-besar-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 7,
+        "trackpoints": 1132,
+        "waypoints": 10
+      },
+      {
+        "path": "gpx/jawa-barat/peg-malabar-puncak-haruman-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 3,
+        "trackpoints": 365,
+        "waypoints": 17
+      },
+      {
+        "path": "gpx/jawa-barat/peg-malabar-puncak-puntang-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 3,
+        "trackpoints": 1245,
+        "waypoints": 15
+      },
+      {
+        "path": "gpx/jawa-barat/rakutak-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 6,
+        "trackpoints": 1159,
+        "waypoints": 16
+      },
+      {
+        "path": "gpx/jawa-barat/salak-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 9,
+        "trackpoints": 4478,
+        "waypoints": 38
+      },
+      {
+        "path": "gpx/jawa-barat/tangkuban-perahu-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 12,
+        "trackpoints": 2669,
+        "waypoints": 17
+      },
+      {
+        "path": "gpx/jawa-barat/tegal-panjang-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 3,
+        "trackpoints": 1276,
+        "waypoints": 12
+      },
+      {
+        "path": "gpx/jawa-barat/wayang-gpx.gpx",
+        "sha256_match": true,
+        "tracks": 3,
+        "trackpoints": 114,
+        "waypoints": 6
+      }
+    ],
+    "extra_duplicate_asset_checks": [
+      {
+        "path": "gpx/jawa-barat/ceremai-gpx-1.gpx",
+        "hash_match": true
+      }
+    ],
+    "duplicate_tracks": [
+      {
+        "mountain": "ceremai",
+        "duplicate": "Track 146 002",
+        "duplicate_of": "Track 146 001 001",
+        "points": 225
+      },
+      {
+        "mountain": "gede-pangrango",
+        "duplicate": "Track 110 001",
+        "duplicate_of": "Track 110",
+        "points": 1980
+      },
+      {
+        "mountain": "gede-pangrango",
+        "duplicate": "Track 148 001",
+        "duplicate_of": "Track 148",
+        "points": 329
+      },
+      {
+        "mountain": "gede-pangrango",
+        "duplicate": "Track 150 001",
+        "duplicate_of": "Track 150",
+        "points": 4502
+      },
+      {
+        "mountain": "gede-pangrango",
+        "duplicate": "Track 152 001",
+        "duplicate_of": "Track 152",
+        "points": 914
+      },
+      {
+        "mountain": "gede-pangrango",
+        "duplicate": "Track 583 001",
+        "duplicate_of": "Track 583",
+        "points": 7320
+      }
+    ]
+  },
+  "known_open_items": [
+    "Current authority/land-manager access notices must be rechecked before public route-open statements.",
+    "Several mountain-to-track identities are intentionally unresolved and must not be automatically renamed.",
+    "Basecamp operators and contacts remain incomplete where the sources do not provide current official details.",
+    "Halimun has no local GPX asset in the repository.",
+    "Source GPX reuse rights are still represented by the project's existing permission-review process.",
+    "Written current clearance and direct access/operation confirmation remain outstanding for all routes under the regional West Java restriction.",
+    "Bukit Tunggul, Rakutak and Malabar candidate basecamp contacts/locations require current operator confirmation.",
+    "Patuha Cipanganten official-status discrepancy between 2020 map and 2024 field video remains unresolved.",
+    "Galunggung map-to-GPX track association is cross-source matched, but local spelling (Dindingsari/Dindingari) and current access require local confirmation.",
+    "Papandayan Kawah Manuk monitoring update is dated; check the latest PVMBG notice before publishing any safety or access status.",
+    "Papandayan reopening statement is dated 11 Oct 2026; check subsequent BBKSDA/TWA instructions before real travel.",
+    "Ciremai remains recorded closed until TNGC publishes a reopening notice; direct signed notice attachment was not retrieved in this pass.",
+    "Gede-Pangrango current booking availability could not be independently confirmed from readable official portal content."
+  ],
+  "warnings": [
+    "No database data imported or altered.",
+    "All datasets remain publishable=false.",
+    "Raw GPX track names/coordinates and waypoint labels/order are preserved; waypoint-to-track proximity is only a spatial candidate, not official route verification.",
+    "All route permission/open states require the latest route-specific manager notice; no access state is inferred solely from GPX.",
+    "Papandayan: BBKSDA statement on 11 Oct 2026 says reopened under monitoring, crater no-linger and Pondok Saladah camping restricted.",
+    "Ciremai: TNGC closure announcement reported from 6 Sep 2026 until fire risk declared safe; no reopening notice found by 30 Oct.",
+    "Gede-Pangrango: 7–11 Aug emergency closure is historical; current access is not independently confirmed.",
+    "Basecamp identities, contacts and facilities remain incomplete where current direct operator confirmation was not available.",
+    "No elevation, distance/gain, duration, difficulty or calculation-model inputs were added or recalculated."
+  ],
+  "errors": [],
+  "decision": "PASS: WEST JAVA BASELINE SOURCE DATA AND DB GEOMETRY CONSISTENCY VERIFIED; ROUTE AUTHORIZATION/BASECAMP FRESHNESS GAPS STILL LABELED.",
+  "research_enrichment": {
+    "additional_sources_added": 11,
+    "source_ids_added": [
+      "S30",
+      "S31",
+      "S32",
+      "S33",
+      "S34",
+      "S35",
+      "S36",
+      "S37",
+      "S38",
+      "S39",
+      "S40"
+    ],
+    "mountains_enriched": [
+      "Bukit Tunggul",
+      "Galunggung",
+      "Rakutak",
+      "Patuha",
+      "Peg. Malabar Puncak Besar",
+      "Papandayan",
+      "Ceremai",
+      "Gede – Pangrango"
+    ],
+    "important_corrections": [
+      "Galunggung track association re-evaluated against Pegunungan Galunggung route map; three start/summit-labelled tracks are cross-referenced to the broader massif, not discarded as a mismatch.",
+      "Patuha's Cipanganten mapped route retains the 2020 unofficial versus 2024 video-reported official discrepancy.",
+      "Bukit Tunggul and Rakutak route options added from 2026/2025 secondary reports, not upgraded to official access status.",
+      "Malabar Puncak Besar Cinyiruan source adds field landmarks and an unverified historical public contact candidate.",
+      "Papandayan adds a dated official monitoring reference for Kawah Manuk.",
+      "Papandayan access was updated to reflect the BBKSDA statement of 11 Oct 2026: hiking reopened under monitoring, no lingering in crater area, Pondok Saladah camping still restricted.",
+      "Ciremai access was updated with TNGC notice PG.20/T.33/TU/KSA.02.02/B/08/2026 closing all summit routes from 6 Sep until wildfire risk is declared safe; no reopening notice found by 30 Oct.",
+      "Gede-Pangrango's 7–11 Aug emergency closure was correctly recorded as a five-day historical closure only; current access remains unconfirmed instead of assuming that emergency closure continued."
+    ],
+    "elevation_and_derived_metrics": "not added or recomputed"
+  },
+  "database_reconciliation": {
+    "published_trails": 120,
+    "route_candidates": 120,
+    "exact_geojson_matches": 120,
+    "published_checkpoints": 315,
+    "checkpoint_candidates": 315,
+    "matches_by_mountain_name_and_6dp_coordinates": 315,
+    "hiking_operators": 0
+  }
+}

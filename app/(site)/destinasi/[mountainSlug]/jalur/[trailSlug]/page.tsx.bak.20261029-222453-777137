@@ -1,0 +1,211 @@
+import Image from "next/image"
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import { ArrowDownToLine, ArrowUpRight, CheckCircle2, Clock3, ExternalLink, MapPin, Mountain, Route, ShieldAlert, Signal } from "lucide-react"
+import BookingNoticeDialog from "@/components/booking-notice-dialog"
+import HikingMap from "@/components/hiking-map"
+import HikingWeatherPanel from "@/components/hiking-weather-panel"
+import HikingWeatherAlertsPanel from "@/components/hiking-weather-alerts-panel"
+import { HikingAdvisories, HikingMediaGallery } from "@/components/hiking-information-panels"
+import {
+  type HikingAdvisory,
+  type HikingCheckpoint,
+  type HikingMedia,
+  type HikingMountain,
+  type HikingTrail,
+  formatDistance,
+  formatDuration,
+  formatElevation,
+  formatIndonesianDate,
+  requestHikingCatalog,
+} from "@/lib/hiking"
+
+export const dynamic = "force-dynamic"
+
+type PageProps = { params: Promise<{ mountainSlug: string; trailSlug: string }> }
+
+export async function generateMetadata({ params }: PageProps) {
+  const { mountainSlug, trailSlug } = await params
+  return {
+    title: "Detail Jalur Pendakian | Akasha Outdoor Rent",
+    description: "Informasi jalur pendakian, peta rute terpublikasi, checkpoint, prakiraan BMKG, dan advisori yang tersedia.",
+    alternates: { canonical: "/destinasi/" + encodeURIComponent(mountainSlug) + "/jalur/" + encodeURIComponent(trailSlug) },
+  }
+}
+
+function safeHttps(url?: string | null) {
+  return url?.startsWith("https://") ? url : null
+}
+
+function statusText(value?: string | null) {
+  if (!value) return null
+  const labels: Record<string, string> = {
+    open: "Dibuka",
+    closed: "Ditutup",
+    limited: "Akses terbatas",
+    temporarily_closed: "Ditutup sementara",
+    temporarily_closed_by_weather: "Ditutup sementara karena cuaca",
+    unknown: "Belum diketahui",
+  }
+  return labels[value.toLowerCase()] ?? value
+}
+
+function statusClass(value?: string | null) {
+  const normalized = value?.toLowerCase()
+  if (normalized === "open") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+  if (normalized?.includes("closed")) return "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300"
+  if (normalized === "limited" || normalized === "unknown") return "border-amber-500/20 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+  return "border-border bg-muted text-muted-foreground"
+}
+
+function elevationGain(value?: number | null) {
+  return value == null || !Number.isFinite(value) ? null : "+" + new Intl.NumberFormat("id-ID").format(value) + " m"
+}
+
+function TrailUnavailable({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="min-h-[60vh] px-4 py-16 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-xl flex-col items-center rounded-3xl border border-amber-500/25 bg-amber-500/[0.05] p-8 text-center">
+        <span className="flex size-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-700 dark:text-amber-300"><Route className="size-5" /></span>
+        <h1 className="mt-4 text-xl font-semibold tracking-tight">{title}</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{message}</p>
+        <Link href="/destinasi" className="mt-5 inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground">Kembali ke destinasi <ArrowUpRight className="size-4" /></Link>
+      </div>
+    </div>
+  )
+}
+
+export default async function HikingTrailDetailPage({ params }: PageProps) {
+  const { mountainSlug, trailSlug } = await params
+
+  let mountain: HikingMountain | null = null
+  let trail: HikingTrail | null = null
+  try {
+    const [mountainResponse, trailResponse] = await Promise.all([
+      requestHikingCatalog<HikingMountain>({ resource: "mountains", mountain_slug: mountainSlug, limit: 1, offset: 0 }),
+      requestHikingCatalog<HikingTrail>({ resource: "trails", mountain_slug: mountainSlug, trail_slug: trailSlug, limit: 1, offset: 0 }),
+    ])
+    mountain = mountainResponse.items?.[0] ?? null
+    trail = trailResponse.items?.[0] ?? null
+  } catch {
+    return <TrailUnavailable title="Informasi jalur belum dapat dimuat" message="Layanan katalog sedang tidak dapat dihubungi. Coba kembali nanti; halaman ini tidak mengganti data resmi dengan contoh." />
+  }
+
+  if (!mountain || !trail) notFound()
+
+  const [checkpointResult, advisoryResult, mediaResult] = await Promise.all([
+    requestHikingCatalog<HikingCheckpoint>({ resource: "checkpoints", mountain_slug: mountain.slug, trail_slug: trail.slug, limit: 50, offset: 0 })
+      .then((response) => ({ items: response.items ?? [], unavailable: false }))
+      .catch(() => ({ items: [] as HikingCheckpoint[], unavailable: true })),
+    requestHikingCatalog<HikingAdvisory>({ resource: "advisories", mountain_slug: mountain.slug, trail_slug: trail.slug, limit: 20, offset: 0 })
+      .then((response) => ({ items: response.items ?? [], unavailable: false }))
+      .catch(() => ({ items: [] as HikingAdvisory[], unavailable: true })),
+    requestHikingCatalog<HikingMedia>({ resource: "media", mountain_slug: mountain.slug, trail_slug: trail.slug, limit: 20, offset: 0 })
+      .then((response) => ({ items: response.items ?? [], unavailable: false }))
+      .catch(() => ({ items: [] as HikingMedia[], unavailable: true })),
+  ])
+
+  const routeAvailable = Boolean(trail.dataAvailability?.routeGeoJson && trail.route_geojson)
+  const mapMountain: HikingMountain = {
+    ...mountain,
+    latitude: trail.basecamp_latitude ?? mountain.latitude ?? null,
+    longitude: trail.basecamp_longitude ?? mountain.longitude ?? null,
+    name: trail.basecamp_name ? "Basecamp · " + trail.basecamp_name : mountain.name,
+  }
+  const mapAvailable = routeAvailable || (mapMountain.latitude != null && mapMountain.longitude != null)
+  const ticketUrl = safeHttps(trail.official_booking_url)
+  const status = statusText(trail.operational_status)
+  const statusSourceUrl = safeHttps(trail.operational_status_source_url)
+  const routeSourceUrl = safeHttps(trail.route_source_reference_url)
+
+  return (
+    <div className="overflow-clip bg-background text-foreground">
+      <section className="relative isolate overflow-hidden bg-slate-950 px-4 py-12 text-white sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+        <Image src="/bg.webp" alt="" fill priority sizes="100vw" quality={80} className="object-cover object-center" />
+        <div className="absolute inset-0 -z-0 bg-gradient-to-r from-slate-950/90 via-slate-950/72 to-slate-950/45" />
+        <div className="relative mx-auto max-w-7xl">
+          <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-xs font-medium text-white/70">
+            <Link href="/destinasi" className="transition hover:text-white">Destinasi</Link><span aria-hidden="true">/</span><Link href={"/destinasi/" + mountain.slug} className="max-w-[55vw] truncate transition hover:text-white">{mountain.name}</Link>
+          </nav>
+          <div className="mt-8 max-w-4xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-[10px] font-semibold tracking-[0.16em] text-white/90 uppercase backdrop-blur-md"><Route className="size-3.5 text-orange-300" /> Detail jalur pendakian</span>
+            <h1 className="mt-5 text-4xl leading-[1.02] font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">{trail.name}</h1>
+            <p className="mt-3 flex items-center gap-2 text-sm text-white/80"><Mountain className="size-4 shrink-0 text-orange-200" /> {mountain.name} · {[mountain.regency, mountain.province].filter(Boolean).join(", ") || "Wilayah belum dipublikasikan"}</p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {trail.verified_at && <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/30 bg-emerald-400/10 px-3.5 py-2 text-xs font-semibold text-emerald-100"><CheckCircle2 className="size-3.5" /> Data jalur diverifikasi</span>}
+              {trail.difficulty_grade != null && <span className="rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-xs font-semibold backdrop-blur">Grade {trail.difficulty_grade}</span>}
+              {trail.distance_m != null && <span className="rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-xs font-semibold backdrop-blur">{formatDistance(trail.distance_m)}</span>}
+              {trail.estimated_duration_minutes != null && <span className="rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-xs font-semibold backdrop-blur">{formatDuration(trail.estimated_duration_minutes)}</span>}
+            </div>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a href="#informasi-jalur" className="inline-flex h-11 items-center gap-2 rounded-full bg-orange-500 px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-orange-400">Lihat informasi <ArrowUpRight className="size-4" /></a>
+              <BookingNoticeDialog label="Pesan tiket pendakian" purpose="hiking-ticket" itemName={trail.name} officialBookingUrl={ticketUrl} className="inline-flex h-11 items-center gap-2 rounded-full border border-white/35 bg-white/10 px-5 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20" />
+              {trail.dataAvailability?.gpxDownload && <a href={"/api/hiking/route-download?mountain_slug=" + encodeURIComponent(mountain.slug) + "&trail_slug=" + encodeURIComponent(trail.slug)} className="inline-flex h-11 items-center gap-2 rounded-full border border-white/25 px-4 text-sm font-semibold text-white/90 transition hover:bg-white/10"><ArrowDownToLine className="size-4" /> Unduh GPX</a>}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="informasi-jalur" className="scroll-mt-24 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+            <article className="rounded-3xl border border-border/60 bg-card p-5 sm:p-7">
+              <span className="section-eyebrow"><Route className="size-3.5" /> Ringkasan jalur</span>
+              <h2 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">Kenali rute sebelum berangkat</h2>
+              {trail.description ? <p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted-foreground">{trail.description}</p> : <p className="mt-3 text-sm leading-6 text-muted-foreground">Deskripsi jalur belum dipublikasikan.</p>}
+              <div className="mt-5 grid grid-cols-2 gap-2.5">
+                {trail.distance_m != null && <div className="rounded-2xl bg-muted/55 p-3.5"><MapPin className="size-4 text-primary" /><p className="mt-2 text-[10px] text-muted-foreground">Jarak jalur</p><p className="mt-1 text-lg font-semibold">{formatDistance(trail.distance_m)}</p></div>}
+                {trail.elevation_gain_m != null && <div className="rounded-2xl bg-muted/55 p-3.5"><Mountain className="size-4 text-primary" /><p className="mt-2 text-[10px] text-muted-foreground">Kenaikan elevasi</p><p className="mt-1 text-lg font-semibold">{elevationGain(trail.elevation_gain_m)}</p></div>}
+                {trail.estimated_duration_minutes != null && <div className="rounded-2xl bg-muted/55 p-3.5"><Clock3 className="size-4 text-primary" /><p className="mt-2 text-[10px] text-muted-foreground">Durasi estimasi</p><p className="mt-1 text-lg font-semibold">{formatDuration(trail.estimated_duration_minutes)}</p></div>}
+                {trail.difficulty_grade != null && <div className="rounded-2xl bg-muted/55 p-3.5"><Signal className="size-4 text-primary" /><p className="mt-2 text-[10px] text-muted-foreground">Tingkat kesulitan</p><p className="mt-1 text-lg font-semibold">Grade {trail.difficulty_grade}</p></div>}
+              </div>
+              {trail.basecamp_name && <div className="mt-4 rounded-2xl border border-border/60 p-4"><p className="text-xs font-semibold">Basecamp</p><p className="mt-1 text-sm">{trail.basecamp_name}</p>{trail.basecamp_address && <p className="mt-1 text-xs leading-5 text-muted-foreground">{trail.basecamp_address}</p>}</div>}
+              <div className="mt-5 border-t border-border/60 pt-5">
+                <p className="text-xs font-semibold">Data dan sumber</p>
+                <div className="mt-2 space-y-2 text-xs leading-5 text-muted-foreground">
+                  <p>Verifikasi rute: {formatIndonesianDate(trail.verified_at) ?? "Belum ada waktu verifikasi yang dipublikasikan"}.</p>
+                  {routeSourceUrl && <a href={routeSourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-primary hover:underline">Sumber rute <ExternalLink className="size-3.5" /></a>}
+                </div>
+              </div>
+            </article>
+
+            <div>
+              {mapAvailable ? (
+                <HikingMap mountains={[mapMountain]} activeMountainSlug={mountain.slug} routeGeoJSON={routeAvailable ? trail.route_geojson : undefined} checkpoints={checkpointResult.items} label={"Peta jalur " + trail.name} className="h-[350px] sm:h-[460px]" />
+              ) : (
+                <div className="grid h-[350px] place-items-center rounded-3xl border border-dashed border-border bg-card p-6 text-center sm:h-[460px]"><div className="max-w-sm"><MapPin className="mx-auto size-7 text-muted-foreground" /><h2 className="mt-3 text-base font-semibold">Peta jalur belum tersedia</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">{trail.dataAvailability?.message || "Koordinat dan geometri jalur belum dipublikasikan."}</p></div></div>
+              )}
+              {!routeAvailable && <p className="mt-3 rounded-xl border border-border/60 bg-card px-3.5 py-3 text-xs leading-5 text-muted-foreground">Garis rute belum ditampilkan karena geometri jalur belum tersedia di katalog publik. Tidak ada garis perkiraan yang dibuat.</p>}
+            </div>
+          </div>
+
+          <section className="mt-6 rounded-3xl border border-border/60 bg-card p-5 sm:p-7">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div><span className="section-eyebrow"><MapPin className="size-3.5" /> Titik penting</span><h2 className="mt-3 text-xl font-semibold tracking-tight">Checkpoint jalur</h2></div>
+              <span className="rounded-full border border-border/70 bg-muted px-3 py-1.5 text-[10px] font-semibold text-muted-foreground">{checkpointResult.unavailable ? "Belum dapat dimuat" : checkpointResult.items.length + " titik"}</span>
+            </div>
+            {checkpointResult.unavailable ? <p className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-4 text-sm leading-6 text-muted-foreground">Informasi checkpoint belum dapat dimuat. Coba kembali nanti.</p> : checkpointResult.items.length === 0 ? <p className="mt-4 rounded-2xl border border-dashed border-border p-4 text-sm leading-6 text-muted-foreground">Belum ada checkpoint yang dipublikasikan. Marker dan urutan checkpoint hanya akan muncul setelah data lokasi tersedia.</p> : (
+              <ol className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {checkpointResult.items.map((point, index) => <li key={point.checkpoint_id ?? point.code ?? point.sequence_number ?? index} className="flex items-start gap-3 rounded-2xl border border-border/60 p-4"><span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{point.sequence_number ?? index + 1}</span><div className="min-w-0"><p className="text-sm font-semibold">{point.name}</p>{point.elevation_m != null && <p className="mt-1 text-[10px] text-muted-foreground">{formatElevation(point.elevation_m)}</p>}{point.description && <p className="mt-2 text-xs leading-5 text-muted-foreground">{point.description}</p>}</div></li>)}
+              </ol>
+            )}
+          </section>
+        </div>
+      </section>
+
+      <section className="border-y border-border/60 bg-secondary/20 px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-2">
+          <HikingWeatherPanel trailSlug={trail.slug} />
+          <HikingWeatherAlertsPanel province={mountain.province} regency={mountain.regency} />
+        </div>
+      </section>
+
+      <section className="px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl space-y-5">
+          <HikingAdvisories items={advisoryResult.items} unavailable={advisoryResult.unavailable} />
+          <HikingMediaGallery items={mediaResult.items} unavailable={mediaResult.unavailable} />
+        </div>
+      </section>
+    </div>
+  )
+}

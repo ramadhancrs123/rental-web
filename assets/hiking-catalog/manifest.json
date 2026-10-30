@@ -1,0 +1,33 @@
+{
+  "catalog": "hiking-catalog",
+  "schema_version": "1.1.0",
+  "default_locale": "id-ID",
+  "maintained_in_repository": true,
+  "database_is_runtime_source_of_truth": true,
+  "staging_policy": "JSON is research and review input; never import or publish records solely because they exist here.",
+  "source_registry": "sources.json",
+  "schema": "schema.json",
+  "datasets": [
+    {
+      "id": "hiking:jawa-barat:catalog",
+      "path": "provinces/jawa-barat/catalog.json",
+      "status": "large_research_baseline_complete_review_required",
+      "publishable": false,
+      "mountains": 20,
+      "local_gpx_files": 19,
+      "tracks": 120,
+      "waypoints": 315,
+      "schema": "schemas/province-catalog.schema.json",
+      "source_registry": "sources.json",
+      "sources": 40,
+      "track_access_matches": 44,
+      "duplicate_track_records": 6
+    },
+    {
+      "id": "hiking:jawa-barat:cikuray",
+      "path": "provinces/jawa-barat/cikuray.json",
+      "status": "pilot_research_complete_reviewable",
+      "publishable": false
+    }
+  ]
+}

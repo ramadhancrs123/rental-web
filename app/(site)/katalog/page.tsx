@@ -9,8 +9,6 @@ import ScrollReveal from "@/components/scroll-reveal"
 import { fetchCatalog, catalogCategories, formatRentalDuration } from "@/lib/catalog"
 import { formatRupiah } from "@/lib/supabase"
 
-export const dynamic = "force-dynamic"
-
 export const metadata = {
   title: "Katalog | Akasha Outdoor Rent",
   description: "Lihat perlengkapan dan paket sewa outdoor Akasha berdasarkan tarif aktif yang dipublikasikan pengelola.",

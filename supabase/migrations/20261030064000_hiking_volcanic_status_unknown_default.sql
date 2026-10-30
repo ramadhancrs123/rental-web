@@ -1,0 +1,1 @@
+ALTER TABLE public.hiking_mountains ALTER COLUMN volcanic_status SET DEFAULT 'unknown';

@@ -46,6 +46,14 @@ export async function submitBooking(
     return { ok: false, error: "Periksa kembali isian formulir.", fieldErrors }
   }
 
+  const idempotencyKey = String(formData.get("idempotency_key") ?? "").trim()
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
+    return {
+      ok: false,
+      error: "Sesi pengiriman tidak valid. Muat ulang formulir, lalu coba kembali.",
+    }
+  }
+
   const payload = {
     nama,
     telepon,
@@ -56,7 +64,6 @@ export async function submitBooking(
   }
 
   const sb = getSupabase()
-  const idempotencyKey = crypto.randomUUID()
 
   const { data, error } = await sb.rpc("command_create_website_booking", {
     p_slug: USAHA_SLUG,

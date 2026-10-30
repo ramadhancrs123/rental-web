@@ -2,6 +2,8 @@ import { Inter, Instrument_Serif } from "next/font/google"
 import type { Metadata } from "next"
 
 import "./globals.css"
+import "maplibre-gl/dist/maplibre-gl.css"
+import "@maptoolkit/maplibre-logo-control/style.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 

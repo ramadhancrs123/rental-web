@@ -1,0 +1,105 @@
+"use client"
+
+import { useMemo, useState } from "react"
+import Link from "next/link"
+import { ArrowUpRight, Check, ChevronRight, CloudSun, Compass, MapPinned, Mountain, Search, SlidersHorizontal } from "lucide-react"
+import HikingMap from "@/components/hiking-map"
+import DestinationWeatherSummary from "@/components/destination-weather-summary"
+import type { HikingMountain } from "@/lib/hiking"
+
+type DestinationsExplorerProps = { initialMountains: HikingMountain[]; loadError?: boolean }
+
+function getMountainLocation(mountain: HikingMountain) {
+  return [mountain.regency, mountain.province].filter(Boolean).join(", ") || "Wilayah belum diisi"
+}
+
+function formatElevation(value?: number | null) {
+  return value != null && Number.isFinite(value) ? new Intl.NumberFormat("id-ID").format(value) + " mdpl" : null
+}
+
+export default function DestinationsExplorer({ initialMountains, loadError = false }: DestinationsExplorerProps) {
+  const [query, setQuery] = useState("")
+  const [province, setProvince] = useState("")
+  const [activeSlug, setActiveSlug] = useState<string | null>(initialMountains[0]?.slug ?? null)
+  const [viewMode, setViewMode] = useState<"map" | "list">("list")
+
+  const provinces = useMemo(() => [...new Set(initialMountains.map((mountain) => mountain.province).filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b, "id")), [initialMountains])
+  const mountains = useMemo(() => {
+    const term = query.trim().toLocaleLowerCase("id-ID")
+    return initialMountains.filter((mountain) => {
+      const matchesQuery = !term || [mountain.name, mountain.regency, mountain.province].some((value) => value?.toLocaleLowerCase("id-ID").includes(term))
+      const matchesProvince = !province || mountain.province === province
+      return matchesQuery && matchesProvince
+    })
+  }, [initialMountains, query, province])
+  const activeMountain = mountains.find((mountain) => mountain.slug === activeSlug) ?? mountains[0] ?? null
+
+  return (
+    <section className="px-4 pb-16 sm:px-6 sm:pb-20 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-sm sm:p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <label className="flex min-h-11 flex-1 items-center gap-3 rounded-xl border border-border/70 bg-background px-3.5 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10">
+              <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="sr-only">Cari gunung atau destinasi</span>
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama gunung atau kabupaten…" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/75" type="search" autoComplete="off" />
+              {query && <button type="button" onClick={() => setQuery("")} className="rounded-full px-2 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">Hapus</button>}
+            </label>
+            <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border/70 bg-background px-3.5 md:w-[230px]">
+              <SlidersHorizontal className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="sr-only">Filter provinsi</span>
+              <select value={province} onChange={(event) => setProvince(event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm outline-none">
+                <option value="">Semua wilayah</option>
+                {provinces.map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
+            </label>
+            <div className="grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-muted/60 p-1 md:hidden" role="group" aria-label="Tampilan destinasi">
+              <button type="button" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")} className={"inline-flex h-9 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition " + (viewMode === "list" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}><Mountain className="size-3.5" /> Daftar</button>
+              <button type="button" aria-pressed={viewMode === "map"} onClick={() => setViewMode("map")} className={"inline-flex h-9 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition " + (viewMode === "map" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}><MapPinned className="size-3.5" /> Peta</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4 mt-7 flex flex-wrap items-end justify-between gap-3">
+          <div><span className="section-eyebrow"><Compass className="size-3.5" /> Jelajahi Jawa Barat</span><h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">Temukan gunung dan akses pendakiannya</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Katalog hanya memuat data yang sudah lolos publikasi di sistem.</p></div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-xs font-medium text-muted-foreground"><span className="size-2 rounded-full bg-emerald-500" />{mountains.length} gunung</span>
+        </div>
+
+        {loadError && <div className="mb-4 rounded-xl border border-amber-500/25 bg-amber-500/[0.05] px-4 py-3 text-sm text-muted-foreground">Katalog belum dapat dihubungi. Data contoh atau file lokal tidak digunakan sebagai pengganti data database.</div>}
+
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(310px,0.77fr)_minmax(0,1.43fr)]">
+          <div className={viewMode === "list" ? "block" : "hidden lg:block"}>
+            <div className="hiking-destination-list space-y-2.5 lg:max-h-[min(70vh,720px)] lg:overflow-y-auto lg:pr-1">
+              {mountains.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-card px-5 py-9 text-center"><span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Search className="size-5" /></span><h3 className="mt-4 text-base font-semibold">{loadError ? "Destinasi belum dapat dimuat" : "Belum ada gunung terpublikasi"}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{loadError ? "Periksa koneksi dan coba kembali." : "Informasi akan tampil setelah data gunung dan sumbernya lolos verifikasi serta dipublikasikan."}</p><button type="button" onClick={() => { setQuery(""); setProvince("") }} className="mt-4 text-xs font-semibold text-primary underline underline-offset-4">Hapus filter</button></div>
+              ) : mountains.map((mountain) => {
+                const selected = mountain.slug === activeMountain?.slug
+                const elevation = mountain.verified_at ? formatElevation(mountain.elevation_m) : null
+                return (
+                  <article key={mountain.mountain_id} className={"overflow-hidden rounded-2xl border transition " + (selected ? "border-primary/40 bg-card shadow-md shadow-primary/5" : "border-border/60 bg-card hover:border-primary/25")}>
+                    <button type="button" aria-pressed={selected} onClick={() => setActiveSlug(mountain.slug)} className="flex w-full items-start gap-3 p-4 text-left">
+                      <span className={"flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors " + (selected ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground")}><Mountain className="size-5" /></span>
+                      <span className="min-w-0 flex-1"><span className="block text-sm font-semibold leading-5">{mountain.name}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{getMountainLocation(mountain)}</span>{elevation && <span className="mt-2 inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">{elevation}</span>}{mountain.verified_at && <span className="mt-2 flex items-center gap-1 text-[10px] font-medium text-emerald-700 dark:text-emerald-300"><Check className="size-3" /> Data terverifikasi</span>}</span>
+                      <ChevronRight className={"mt-1 size-4 shrink-0 transition-transform " + (selected ? "translate-x-0.5 text-primary" : "text-muted-foreground")} />
+                    </button>
+                    <DestinationWeatherSummary key={mountain.slug} mountainSlug={mountain.slug} destinationName={mountain.name} compact lazy />
+                    <div className="flex items-center justify-between gap-3 border-t border-border/60 px-4 py-3"><span className="truncate text-[10px] text-muted-foreground">Peta dan jalur dari data terpublikasi</span><Link href={"/destinasi/" + mountain.slug} className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Lihat detail <ArrowUpRight className="size-3.5" /></Link></div>
+                  </article>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className={viewMode === "map" ? "block" : "hidden lg:block"}>
+            <div className="sticky top-24">
+              <HikingMap mountains={initialMountains} title="Peta persebaran gunung Jawa Barat" frameClassName="h-[52svh] min-h-[340px] max-h-[720px] lg:h-[min(70vh,720px)]" caption="Peta Maptoolkit Outdoor. Marker berasal dari koordinat gunung yang sudah dipublikasikan dalam database; pilih marker untuk membuka detail destinasi." />
+              {activeMountain && <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="text-sm font-semibold">{activeMountain.name}</p><p className="mt-1 truncate text-xs text-muted-foreground">{getMountainLocation(activeMountain)}</p></div><Link href={"/destinasi/" + activeMountain.slug} className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:opacity-90">Detail destinasi <ArrowUpRight className="size-3.5" /></Link></div>}
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-3 flex items-start gap-2 text-[10px] leading-4 text-muted-foreground"><CloudSun className="mt-0.5 size-3.5 shrink-0" />Ringkasan dimuat bertahap untuk kartu yang terlihat. Cuaca merupakan prakiraan BMKG wilayah referensi, bukan ramalan khusus puncak atau setiap pos pendakian.</p>
+      </div>
+    </section>
+  )
+}

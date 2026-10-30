@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useMemo, useState } from "react"
+import { useActionState, useMemo, useRef, useState } from "react"
 import { CalendarDays, MessageCircle, Minus, Plus, LoaderCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +16,31 @@ type BookableVariant = {
   barang_nama: string
   kategori_nama: string
   price: number
+}
+
+function createIdempotencyKey(): string {
+  const bytes = new Uint8Array(16)
+  window.crypto.getRandomValues(bytes)
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"))
+  return [
+    hex.slice(0, 4).join(""),
+    hex.slice(4, 6).join(""),
+    hex.slice(6, 8).join(""),
+    hex.slice(8, 10).join(""),
+    hex.slice(10, 16).join(""),
+  ].join("-")
+}
+
+function getBookingFingerprint(form: HTMLFormElement): string {
+  const entries = Array.from(new FormData(form).entries())
+    .filter(([name]) => name !== "idempotency_key")
+    .map(([name, value]) => [
+      name,
+      typeof value === "string" ? value : value.name + ":" + value.size + ":" + value.type,
+    ])
+  return JSON.stringify(entries)
 }
 
 function tomorrowISO(): string {
@@ -40,6 +65,26 @@ export default function BookingForm({
     submitBooking,
     null
   )
+
+  const idempotencyKeyInputRef = useRef<HTMLInputElement | null>(null)
+  const currentIdempotencyRef = useRef<{ fingerprint: string; key: string } | null>(null)
+  const submittedIdempotencyKeysRef = useRef(new Map<string, string>())
+
+  const syncIdempotencyKey = (form: HTMLFormElement, submitted = false) => {
+    const fingerprint = getBookingFingerprint(form)
+    const submittedKey = submittedIdempotencyKeysRef.current.get(fingerprint)
+    const currentKey = currentIdempotencyRef.current?.fingerprint === fingerprint
+      ? currentIdempotencyRef.current.key
+      : null
+    const key = submittedKey ?? currentKey ?? createIdempotencyKey()
+
+    currentIdempotencyRef.current = { fingerprint, key }
+    if (submitted) submittedIdempotencyKeysRef.current.set(fingerprint, key)
+
+    if (idempotencyKeyInputRef.current) {
+      idempotencyKeyInputRef.current.value = key
+    }
+  }
 
   // kuantitas per varian
   const [qty, setQty] = useState<Record<string, number>>({})
@@ -71,7 +116,13 @@ export default function BookingForm({
     state?.ok === false ? state.fieldErrors?.[field] : undefined
 
   return (
-    <form action={formAction} className="space-y-10">
+    <form
+      action={formAction}
+      onChange={(event) => syncIdempotencyKey(event.currentTarget)}
+      onSubmit={(event) => syncIdempotencyKey(event.currentTarget, true)}
+      className="space-y-10"
+    >
+      <input ref={idempotencyKeyInputRef} type="hidden" name="idempotency_key" defaultValue="" />
       {/* Tanggal */}
       <div className="rounded-3xl border border-border/60 bg-card p-6 shadow-xs">
         <h2 className="mb-5 flex items-center gap-2 text-sm font-medium tracking-widest uppercase">

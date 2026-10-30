@@ -1,0 +1,1457 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "hiking:jawa-barat:cikuray",
+  "research_date": "2026-10-30",
+  "locale": "id-ID",
+  "status": "pilot_research_complete_reviewable",
+  "publishable": false,
+  "mountain": {
+    "slug": "cikuray",
+    "name": "Gunung Cikuray",
+    "aliases": [
+      "Cikurai",
+      "Puncak Ribu"
+    ],
+    "administrative_area": {
+      "province": "Jawa Barat",
+      "regency": "Garut",
+      "local_areas_referenced": [
+        "Cilawu",
+        "Bayongbong",
+        "Cigedug",
+        "Cikajang"
+      ]
+    },
+    "elevation": {
+      "value_m": 2821,
+      "verification": "cross_source_reference",
+      "source_ids": [
+        "S01",
+        "S06",
+        "S10"
+      ],
+      "notes": "Angka 2.821 mdpl muncul pada publikasi Badan Geologi dan sumber kartografis/turisme. Bukan hasil survei elevasi yang dilakukan dalam pilot ini."
+    },
+    "summit_location": {
+      "latitude": -7.32257537,
+      "longitude": 107.85979869,
+      "source_label": "PUNCAK CIKURAI 2821M",
+      "source_ids": [
+        "S05"
+      ],
+      "verification": "source_waypoint_not_official_survey"
+    },
+    "geology": {
+      "landform_type": "stratovolcano",
+      "summary": "Publikasi Badan Geologi menguraikan kompleks Karacak–Cikuray sebagai bentang alam vulkanik, dengan satuan lava andesit, breksi piroklastika dan endapan lahar. Publikasi tersebut menyebut Khuluk Cikuray sebagai bagian dari gunung api muda Kuarter.",
+      "current_volcanic_status": "unknown",
+      "status_note": "Keterangan geologi historis bukan pemantauan aktivitas vulkanik terkini. Status operasional/aktivitas harus mengacu pada informasi PVMBG bila diperlukan.",
+      "source_ids": [
+        "S01",
+        "S10"
+      ]
+    },
+    "editorial": {
+      "short_description": "Gunung Cikuray merupakan puncak setinggi sekitar 2.821 mdpl di Kabupaten Garut, Jawa Barat. Bentuk kerucut vulkaniknya menjadi penanda lanskap Garut, sementara beberapa koridor pendakian menghubungkan lereng perkebunan, lahan pertanian, hutan pegunungan, hingga punggungan puncak.",
+      "overview": "Karakter pendakian Cikuray berbeda menurut titik awal. Jalur Pemancar/Cilawu dimulai dari kawasan perkebunan teh sebelum memasuki hutan; akses Cikajang melalui Carik atau Olan melewati lahan pertanian dan hutan pinus; sedangkan jalur Bayongbong/Pamalayan dan Tapak Gerot/Cigedug memiliki pendekatan dan titik pertemuan jalur yang berbeda. Publikasi Badan Geologi menggambarkan beberapa bagian jalur sebagai curam atau menanjak, dan mencatat bahwa angin di area puncak dapat bertiup kuat. Pendaki perlu memilih rute berdasarkan informasi pengelola, bukan semata-mata nama track pada arsip GPX.",
+      "route_context": "Perhutani KPH Garut pada 2025 menyebut Pemancar, Cintanagara dan Tapak Gerot sebagai tiga jalur resmi yang direkomendasikan. Publikasi Badan Geologi 2023 juga mendokumentasikan beberapa rute lain, antara lain Cikajang, Pamalayan/Bayongbong dan Kiara Janggot. Kedua sumber menggambarkan konteks dan waktu yang berbeda; daftar historis tidak otomatis berarti jalur masih beroperasi. Perlu diperhatikan bahwa Surat Edaran Gubernur Jawa Barat 30 Agustus 2026 melarang aktivitas pendakian gunung/hutan di Jawa Barat selama musim kemarau. Laporan media yang menyebut pembukaan kembali dua jalur pada awal Oktober belum didukung pencabutan atau pengecualian tertulis yang ditemukan dalam riset ini.",
+      "safety_note": "Aktivitas pendakian di Jawa Barat terkena Surat Edaran Gubernur Jawa Barat Nomor 116/KH.02.04.03/ASDA EKBANG tanggal 30 Agustus 2026 yang melarang pendakian gunung/hutan selama musim kemarau. Pada riset 30 Oktober 2026 belum ditemukan pencabutan atau pengecualian tertulis untuk jalur Cikuray. Laporan media tentang pembukaan Pemancar dan Cintanagara pada awal Oktober bertentangan dengan pembatasan tersebut dan belum menjadi bukti izin tertulis. Status jalur tidak boleh ditampilkan sebagai dibuka sebelum dikonfirmasi kepada pihak berwenang. Angin di puncak juga dilaporkan dapat bertiup kuat.",
+      "source_ids": [
+        "S01",
+        "S02",
+        "S03",
+        "S05",
+        "S07",
+        "S08",
+        "S09",
+        "S10"
+      ]
+    },
+    "claims": [
+      {
+        "field": "elevation.value_m",
+        "value": 2821,
+        "status": "cross_source_reference",
+        "source_ids": [
+          "S01",
+          "S06",
+          "S10"
+        ]
+      },
+      {
+        "field": "geology.landform_type",
+        "value": "stratovolcano",
+        "status": "official_publication_supported",
+        "source_ids": [
+          "S01",
+          "S10"
+        ]
+      },
+      {
+        "field": "administrative_area.regency",
+        "value": "Garut",
+        "status": "cross_source_reference",
+        "source_ids": [
+          "S01",
+          "S02",
+          "S10"
+        ]
+      },
+      {
+        "field": "summit_location",
+        "value": [
+          -7.32257537,
+          107.85979869
+        ],
+        "status": "community_archive_waypoint",
+        "source_ids": [
+          "S05"
+        ]
+      },
+      {
+        "field": "operational_status",
+        "value": "route_specific_and_time_sensitive",
+        "status": "must_reconfirm",
+        "source_ids": [
+          "S07",
+          "S08",
+          "S09"
+        ]
+      }
+    ]
+  },
+  "routes": [
+    {
+      "id": "pemancar-cilawu",
+      "names": [
+        "Pemancar",
+        "Cilawu",
+        "Dayeuhmanggung"
+      ],
+      "manager_recognition": {
+        "status": "recommended_official_route",
+        "source_ids": [
+          "S03"
+        ]
+      },
+      "operational_status": {
+        "status": "restriction_applies_pending_written_clearance",
+        "legal_basis": {
+          "instrument": "Surat Edaran Gubernur Jawa Barat Nomor 116/KH.02.04.03/ASDA EKBANG",
+          "issued_at": "2026-08-30",
+          "scope": "Larangan seluruh aktivitas pendakian gunung/hutan di wilayah Jawa Barat selama musim kemarau dan aktivitas lain yang berisiko memantik kebakaran.",
+          "source_ids": [
+            "S12",
+            "S13",
+            "S14"
+          ],
+          "signed_copy_status": "not_independently_retrieved",
+          "revocation_or_route_exception_found_by": "2026-10-30",
+          "revocation_or_route_exception_status": "not_found_in_research"
+        },
+        "operator_confirmation": {
+          "status": "not_obtained",
+          "required_before_publishing_open_status": true
+        },
+        "display_guidance": "Jangan tampilkan jalur sebagai dibuka hanya berdasarkan laporan media. Tampilkan bahwa larangan provinsi belum ditemukan pencabutannya dan minta pengunjung memeriksa surat klarifikasi/izin tertulis dari pihak berwenang.",
+        "last_researched_at": "2026-10-30",
+        "reconfirm_before_departure": true,
+        "route_specific_report": {
+          "status": "media_reported_reopening",
+          "date": "2026-10-04",
+          "source_ids": [
+            "S08"
+          ],
+          "weight": "secondary_report_not_written_clearance"
+        },
+        "previous_operational_assessment": "reported_open"
+      },
+      "recorded_track_id": "cikuray-track-002",
+      "basecamp_id": "pemancar-cilawu",
+      "profile": {
+        "trailhead_elevation_m": 1510,
+        "ascent_time_hours": [
+          5,
+          8
+        ],
+        "checkpoints": [
+          {
+            "name": "Pos 1 / Pemancar",
+            "elevation_m": 1510
+          },
+          {
+            "name": "Pos 2",
+            "elevation_m": 1950
+          },
+          {
+            "name": "Pos 3",
+            "elevation_m": 2275
+          },
+          {
+            "name": "Pos 4",
+            "elevation_m": 2310
+          },
+          {
+            "name": "Pos 5",
+            "elevation_m": 2420
+          },
+          {
+            "name": "Pos 6",
+            "elevation_m": 2530
+          },
+          {
+            "name": "Pos 7",
+            "elevation_m": 2750
+          }
+        ],
+        "terrain": "Pendakian dimulai di area perkebunan teh, kemudian mencapai tepi hutan; bagian hutan digambarkan cukup curam. Beberapa area disebut dapat digunakan untuk berkemah.",
+        "source_ids": [
+          "S01"
+        ]
+      },
+      "source_ids": [
+        "S01",
+        "S02",
+        "S03",
+        "S05",
+        "S08"
+      ]
+    },
+    {
+      "id": "cintanagara",
+      "names": [
+        "Cintanagara",
+        "Cinta Nagara"
+      ],
+      "manager_recognition": {
+        "status": "recommended_official_route",
+        "source_ids": [
+          "S03"
+        ]
+      },
+      "operational_status": {
+        "status": "restriction_applies_pending_written_clearance",
+        "legal_basis": {
+          "instrument": "Surat Edaran Gubernur Jawa Barat Nomor 116/KH.02.04.03/ASDA EKBANG",
+          "issued_at": "2026-08-30",
+          "scope": "Larangan seluruh aktivitas pendakian gunung/hutan di wilayah Jawa Barat selama musim kemarau dan aktivitas lain yang berisiko memantik kebakaran.",
+          "source_ids": [
+            "S12",
+            "S13",
+            "S14"
+          ],
+          "signed_copy_status": "not_independently_retrieved",
+          "revocation_or_route_exception_found_by": "2026-10-30",
+          "revocation_or_route_exception_status": "not_found_in_research"
+        },
+        "operator_confirmation": {
+          "status": "not_obtained",
+          "required_before_publishing_open_status": true
+        },
+        "display_guidance": "Jangan tampilkan jalur sebagai dibuka hanya berdasarkan laporan media. Tampilkan bahwa larangan provinsi belum ditemukan pencabutannya dan minta pengunjung memeriksa surat klarifikasi/izin tertulis dari pihak berwenang.",
+        "last_researched_at": "2026-10-30",
+        "reconfirm_before_departure": true,
+        "route_specific_report": {
+          "status": "media_reported_reopening",
+          "date": "2026-10-02",
+          "source_ids": [
+            "S07"
+          ],
+          "weight": "secondary_report_not_written_clearance"
+        },
+        "previous_operational_assessment": "reported_open"
+      },
+      "recorded_track_id": null,
+      "basecamp_id": null,
+      "profile": {
+        "trailhead_elevation_m": null,
+        "ascent_time_hours": null,
+        "terrain": null,
+        "known_checkpoint_reference": "A waypoint named SIMPANG CINTANAGARA exists in ASTACALA source data; this is a junction reference, not a complete Cintanagara route geometry.",
+        "source_ids": [
+          "S05"
+        ]
+      },
+      "source_ids": [
+        "S03",
+        "S05",
+        "S07"
+      ]
+    },
+    {
+      "id": "tapak-geurot-cigedug",
+      "names": [
+        "Tapak Geurot",
+        "Tapak Gerot",
+        "Cigedug"
+      ],
+      "manager_recognition": {
+        "status": "recommended_official_route",
+        "source_ids": [
+          "S03"
+        ]
+      },
+      "operational_status": {
+        "status": "restriction_applies_pending_written_clearance",
+        "legal_basis": {
+          "instrument": "Surat Edaran Gubernur Jawa Barat Nomor 116/KH.02.04.03/ASDA EKBANG",
+          "issued_at": "2026-08-30",
+          "scope": "Larangan seluruh aktivitas pendakian gunung/hutan di wilayah Jawa Barat selama musim kemarau dan aktivitas lain yang berisiko memantik kebakaran.",
+          "source_ids": [
+            "S12",
+            "S13",
+            "S14"
+          ],
+          "signed_copy_status": "not_independently_retrieved",
+          "revocation_or_route_exception_found_by": "2026-10-30",
+          "revocation_or_route_exception_status": "not_found_in_research"
+        },
+        "operator_confirmation": {
+          "status": "not_obtained",
+          "required_before_publishing_open_status": true
+        },
+        "display_guidance": "Jangan tampilkan jalur sebagai dibuka hanya berdasarkan laporan media. Tampilkan bahwa larangan provinsi belum ditemukan pencabutannya dan minta pengunjung memeriksa surat klarifikasi/izin tertulis dari pihak berwenang.",
+        "last_researched_at": "2026-10-30",
+        "reconfirm_before_departure": true,
+        "route_specific_report": {
+          "status": "media_reported_closed",
+          "date": "2026-10-19",
+          "source_ids": [
+            "S09"
+          ],
+          "weight": "secondary_report_attributing_to_local_government"
+        },
+        "previous_operational_assessment": "reported_closed"
+      },
+      "recorded_track_id": null,
+      "basecamp_id": "tapak-geurot",
+      "profile": {
+        "trailhead_elevation_m": null,
+        "ascent_time_hours": null,
+        "terrain": "Publikasi Badan Geologi menggambarkan bagian awal melewati perkebunan warga, kemudian memasuki hutan dengan jalur yang menyempit dan bervariasi dari landai hingga agak terjal.",
+        "checkpoint_notes": "Pos 2 disebut memiliki gubuk; Pos 3 disebut memiliki shelter, warung kopi/makanan dan kamar mandi sederhana; Pos 6 disebut sebagai shelter/camping area dekat puncak. Data fasilitas ini berasal dari publikasi 2023 dan harus dianggap historis.",
+        "source_ids": [
+          "S01"
+        ]
+      },
+      "source_ids": [
+        "S01",
+        "S03",
+        "S04",
+        "S05",
+        "S09"
+      ]
+    },
+    {
+      "id": "cikajang-olan-carik",
+      "names": [
+        "Cikajang",
+        "Olan",
+        "Carik",
+        "Giri Awas"
+      ],
+      "manager_recognition": {
+        "status": "documented_in_2023_geological_guide",
+        "source_ids": [
+          "S01"
+        ]
+      },
+      "operational_status": {
+        "status": "restriction_applies_pending_written_clearance",
+        "legal_basis": {
+          "instrument": "Surat Edaran Gubernur Jawa Barat Nomor 116/KH.02.04.03/ASDA EKBANG",
+          "issued_at": "2026-08-30",
+          "scope": "Larangan seluruh aktivitas pendakian gunung/hutan di wilayah Jawa Barat selama musim kemarau dan aktivitas lain yang berisiko memantik kebakaran.",
+          "source_ids": [
+            "S12",
+            "S13",
+            "S14"
+          ],
+          "signed_copy_status": "not_independently_retrieved",
+          "revocation_or_route_exception_found_by": "2026-10-30",
+          "revocation_or_route_exception_status": "not_found_in_research"
+        },
+        "operator_confirmation": {
+          "status": "not_obtained",
+          "required_before_publishing_open_status": true
+        },
+        "display_guidance": "Jangan tampilkan jalur sebagai dibuka hanya berdasarkan laporan media. Tampilkan bahwa larangan provinsi belum ditemukan pencabutannya dan minta pengunjung memeriksa surat klarifikasi/izin tertulis dari pihak berwenang.",
+        "last_researched_at": "2026-10-30",
+        "reconfirm_before_departure": true,
+        "route_specific_report": null,
+        "previous_operational_assessment": "unknown"
+      },
+      "recorded_track_id": "cikuray-track-003",
+      "basecamp_id": "cikajang-carik",
+      "profile": {
+        "trailhead_elevation_m": 1529,
+        "descent_time_hours_upper_bound": 4,
+        "terrain": "Rute Carik digambarkan melewati kebun sayuran dan hutan pinus yang menanjak. Jalur Olan dan Carik disebut sebagai variasi akses dari Cikajang.",
+        "checkpoints": [
+          {
+            "name": "Pos 1",
+            "elevation_m": 1948
+          },
+          {
+            "name": "Pos 2 / pertemuan Olan",
+            "elevation_m": 2381
+          },
+          {
+            "name": "Pos Bayangan",
+            "elevation_m": 2595
+          },
+          {
+            "name": "Pertemuan Tapak Geurot",
+            "elevation_m": 2744
+          },
+          {
+            "name": "Puncak",
+            "elevation_m": 2821
+          }
+        ],
+        "time_note": "Publikasi ESDM menyebut puncak dapat dicapai kurang dari 6 jam dari Carik dan turun di bawah 4 jam; panduan historis, bukan estimasi operasional terkini.",
+        "source_ids": [
+          "S01"
+        ],
+        "ascent_time_max_hours_exclusive": 6,
+        "ascent_time_comparator": "less_than"
+      },
+      "source_ids": [
+        "S01",
+        "S05",
+        "S06"
+      ]
+    },
+    {
+      "id": "bayongbong-pamalayan-ramayalan",
+      "names": [
+        "Bayongbong",
+        "Pamalayan",
+        "Ramayalan"
+      ],
+      "manager_recognition": {
+        "status": "documented_in_2023_geological_guide",
+        "source_ids": [
+          "S01"
+        ]
+      },
+      "operational_status": {
+        "status": "restriction_applies_pending_written_clearance",
+        "legal_basis": {
+          "instrument": "Surat Edaran Gubernur Jawa Barat Nomor 116/KH.02.04.03/ASDA EKBANG",
+          "issued_at": "2026-08-30",
+          "scope": "Larangan seluruh aktivitas pendakian gunung/hutan di wilayah Jawa Barat selama musim kemarau dan aktivitas lain yang berisiko memantik kebakaran.",
+          "source_ids": [
+            "S12",
+            "S13",
+            "S14"
+          ],
+          "signed_copy_status": "not_independently_retrieved",
+          "revocation_or_route_exception_found_by": "2026-10-30",
+          "revocation_or_route_exception_status": "not_found_in_research"
+        },
+        "operator_confirmation": {
+          "status": "not_obtained",
+          "required_before_publishing_open_status": true
+        },
+        "display_guidance": "Jangan tampilkan jalur sebagai dibuka hanya berdasarkan laporan media. Tampilkan bahwa larangan provinsi belum ditemukan pencabutannya dan minta pengunjung memeriksa surat klarifikasi/izin tertulis dari pihak berwenang.",
+        "last_researched_at": "2026-10-30",
+        "reconfirm_before_departure": true,
+        "route_specific_report": null,
+        "previous_operational_assessment": "unknown"
+      },
+      "recorded_track_id": "cikuray-track-001",
+      "basecamp_id": "pamalayan-bayongbong",
+      "profile": {
+        "trailhead_elevation_m": 1366,
+        "ascent_time_hours": [
+          4,
+          7
+        ],
+        "difficulty_note": "Publikasi ESDM menyebut jalur Bayongbong sebagai yang terberat di antara tiga jalur yang dibandingkan dalam uraian tersebut, namun relatif lebih pendek.",
+        "terrain": "Rute dimulai melalui lahan pertanian/perkebunan sebelum masuk kawasan hutan. Pos 2 pada sekitar 1.975 m disebut dapat dicapai kendaraan roda dua; terdapat parkir dan air bersih yang disediakan warga menurut publikasi 2023.",
+        "time_note": "Panduan historis dari ESDM, bukan standar waktu resmi yang berlaku saat ini.",
+        "source_ids": [
+          "S01"
+        ]
+      },
+      "source_ids": [
+        "S01",
+        "S05",
+        "S06"
+      ]
+    },
+    {
+      "id": "kiara-janggot",
+      "names": [
+        "Kiara Janggot"
+      ],
+      "manager_recognition": {
+        "status": "listed_in_2023_geological_guide",
+        "source_ids": [
+          "S01"
+        ]
+      },
+      "operational_status": {
+        "status": "restriction_applies_pending_written_clearance",
+        "legal_basis": {
+          "instrument": "Surat Edaran Gubernur Jawa Barat Nomor 116/KH.02.04.03/ASDA EKBANG",
+          "issued_at": "2026-08-30",
+          "scope": "Larangan seluruh aktivitas pendakian gunung/hutan di wilayah Jawa Barat selama musim kemarau dan aktivitas lain yang berisiko memantik kebakaran.",
+          "source_ids": [
+            "S12",
+            "S13",
+            "S14"
+          ],
+          "signed_copy_status": "not_independently_retrieved",
+          "revocation_or_route_exception_found_by": "2026-10-30",
+          "revocation_or_route_exception_status": "not_found_in_research"
+        },
+        "operator_confirmation": {
+          "status": "not_obtained",
+          "required_before_publishing_open_status": true
+        },
+        "display_guidance": "Jangan tampilkan jalur sebagai dibuka hanya berdasarkan laporan media. Tampilkan bahwa larangan provinsi belum ditemukan pencabutannya dan minta pengunjung memeriksa surat klarifikasi/izin tertulis dari pihak berwenang.",
+        "last_researched_at": "2026-10-30",
+        "reconfirm_before_departure": true,
+        "route_specific_report": null,
+        "previous_operational_assessment": "unknown"
+      },
+      "recorded_track_id": null,
+      "basecamp_id": null,
+      "profile": {
+        "trailhead_elevation_m": null,
+        "ascent_time_hours": null,
+        "terrain": null,
+        "source_ids": [
+          "S01"
+        ]
+      },
+      "source_ids": [
+        "S01"
+      ]
+    }
+  ],
+  "source_tracks": [
+    {
+      "id": "cikuray-track-001",
+      "source_track_name": "Cikuray 1",
+      "database_trail_slug": "cikuray-track-001",
+      "route_name_association": "Ramayalan / Pamalayan-Bayongbong",
+      "association_status": "probable_geographic_match_needs_manager_confirmation",
+      "association_note": "Starting waypoint is labelled START RAMAYALAN 1366M. ESDM describes a Pamalayan/Bayongbong approach starting at 1,366 m; matching these names as the same operational route is not confirmed.",
+      "recorded_track_length_m": 4365,
+      "length_semantics": "one_way_source_track_length_calculated_from_gpx; not an operator-surveyed trail distance",
+      "segment_count": 1,
+      "trackpoint_count": 110,
+      "trackpoints_with_elevation": 0,
+      "start": {
+        "latitude": -7.30049601,
+        "longitude": 107.83170909
+      },
+      "recorded_end": {
+        "latitude": -7.32303411,
+        "longitude": 107.85918681
+      },
+      "source_asset": "gpx/jawa-barat/Gunung Cikuray.gpx",
+      "source_track_index": 1,
+      "source_ids": [
+        "S05"
+      ]
+    },
+    {
+      "id": "cikuray-track-002",
+      "source_track_name": "Cikuray 2",
+      "database_trail_slug": "cikuray-track-002",
+      "route_name_association": "Pemancar / Cilawu",
+      "association_status": "probable_match_cross_source",
+      "association_note": "Starting waypoint is labelled POSPEMANCAR CILAWU 1510M; aligns with the Pemancar/Cilawu trailhead described by ESDM.",
+      "recorded_track_length_m": 3529,
+      "length_semantics": "one_way_source_track_length_calculated_from_gpx; not an operator-surveyed trail distance",
+      "segment_count": 1,
+      "trackpoint_count": 39,
+      "trackpoints_with_elevation": 0,
+      "start": {
+        "latitude": -7.30515266,
+        "longitude": 107.88178501
+      },
+      "recorded_end": {
+        "latitude": -7.32303411,
+        "longitude": 107.85918681
+      },
+      "source_asset": "gpx/jawa-barat/Gunung Cikuray.gpx",
+      "source_track_index": 2,
+      "source_ids": [
+        "S05"
+      ]
+    },
+    {
+      "id": "cikuray-track-003",
+      "source_track_name": "Cikuray 3",
+      "database_trail_slug": "cikuray-track-003",
+      "route_name_association": "Carik / Cikajang",
+      "association_status": "probable_match_cross_source",
+      "association_note": "Starting waypoint is labelled START CARIK 1529M; ESDM describes Carik as a Cikajang approach.",
+      "recorded_track_length_m": 4578,
+      "length_semantics": "one_way_source_track_length_calculated_from_gpx; not an operator-surveyed trail distance",
+      "segment_count": 1,
+      "trackpoint_count": 119,
+      "trackpoints_with_elevation": 0,
+      "start": {
+        "latitude": -7.3512232,
+        "longitude": 107.83578688
+      },
+      "recorded_end": {
+        "latitude": -7.32303411,
+        "longitude": 107.85918681
+      },
+      "source_asset": "gpx/jawa-barat/Gunung Cikuray.gpx",
+      "source_track_index": 3,
+      "source_ids": [
+        "S05"
+      ]
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "cikuray-wpt-001",
+      "source_index": 1,
+      "source_name": "SUNGAI",
+      "kind": "water_feature_candidate",
+      "route_track_id": "cikuray-track-003",
+      "location": {
+        "latitude": -7.34378485,
+        "longitude": 107.84578574
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 1721,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-002",
+      "source_index": 2,
+      "source_name": "SIMPANG TAPAK GEUROT",
+      "kind": "junction_waypoint",
+      "route_track_id": "cikuray-track-003",
+      "location": {
+        "latitude": -7.32474561,
+        "longitude": 107.8586352
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 2736,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-003",
+      "source_index": 3,
+      "source_name": "PINTU RIMBA",
+      "kind": "forest_entry_waypoint",
+      "route_track_id": "cikuray-track-001",
+      "location": {
+        "latitude": -7.31643545,
+        "longitude": 107.8497596
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 2119,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-004",
+      "source_index": 4,
+      "source_name": "POS 1 VIA CARIK",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-003",
+      "location": {
+        "latitude": -7.33976992,
+        "longitude": 107.8509971
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 1920,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-005",
+      "source_index": 5,
+      "source_name": "POS 1 VIA RAMAYALAN",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-001",
+      "location": {
+        "latitude": -7.3064656,
+        "longitude": 107.83765328
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 1534,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-006",
+      "source_index": 6,
+      "source_name": "POS 2",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-003",
+      "location": {
+        "latitude": -7.33023819,
+        "longitude": 107.85479008
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 2359,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-007",
+      "source_index": 7,
+      "source_name": "POS 2",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-002",
+      "location": {
+        "latitude": -7.31501715,
+        "longitude": 107.87447632
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 1945,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-008",
+      "source_index": 8,
+      "source_name": "POS 2",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-001",
+      "location": {
+        "latitude": -7.31486058,
+        "longitude": 107.84679836
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 1967,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-009",
+      "source_index": 9,
+      "source_name": "POS 3",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-002",
+      "location": {
+        "latitude": -7.31938178,
+        "longitude": 107.87093732
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 2209,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-010",
+      "source_index": 10,
+      "source_name": "POS 3",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-001",
+      "location": {
+        "latitude": -7.31902638,
+        "longitude": 107.85231507
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 2327,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-011",
+      "source_index": 11,
+      "source_name": "POS 4",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-002",
+      "location": {
+        "latitude": -7.32004613,
+        "longitude": 107.87015629
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 2269,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-012",
+      "source_index": 12,
+      "source_name": "POS 4",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-001",
+      "location": {
+        "latitude": -7.32047872,
+        "longitude": 107.85375651
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 2446,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-013",
+      "source_index": 13,
+      "source_name": "POS 5",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-002",
+      "location": {
+        "latitude": -7.32133577,
+        "longitude": 107.86790005
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 2415,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-014",
+      "source_index": 14,
+      "source_name": "POS 6",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-002",
+      "location": {
+        "latitude": -7.32215811,
+        "longitude": 107.86656121
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 2499,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-015",
+      "source_index": 15,
+      "source_name": "POS BAYANGAN",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-003",
+      "location": {
+        "latitude": -7.32692868,
+        "longitude": 107.85632959
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 2578,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-016",
+      "source_index": 16,
+      "source_name": "PUNCAK CIKURAI 2821M",
+      "kind": "summit_waypoint",
+      "route_track_id": "cikuray-track-002",
+      "location": {
+        "latitude": -7.32257537,
+        "longitude": 107.85979869
+      },
+      "source_label_elevation_m": 2821,
+      "dem_candidate_elevation_m": 2803,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-017",
+      "source_index": 17,
+      "source_name": "SIMPANG CINTANAGARA",
+      "kind": "junction_waypoint",
+      "route_track_id": "cikuray-track-001",
+      "location": {
+        "latitude": -7.32197246,
+        "longitude": 107.85555837
+      },
+      "source_label_elevation_m": null,
+      "dem_candidate_elevation_m": 2592,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-018",
+      "source_index": 18,
+      "source_name": "START CARIK 1529M",
+      "kind": "trailhead_candidate",
+      "route_track_id": "cikuray-track-003",
+      "location": {
+        "latitude": -7.35122144,
+        "longitude": 107.83578948
+      },
+      "source_label_elevation_m": 1529,
+      "dem_candidate_elevation_m": 1516,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-019",
+      "source_index": 19,
+      "source_name": "POSPEMANCAR CILAWU 1510M",
+      "kind": "rest_point_waypoint",
+      "route_track_id": "cikuray-track-002",
+      "location": {
+        "latitude": -7.30515266,
+        "longitude": 107.88178501
+      },
+      "source_label_elevation_m": 1510,
+      "dem_candidate_elevation_m": 1516,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    },
+    {
+      "id": "cikuray-wpt-020",
+      "source_index": 20,
+      "source_name": "START RAMALAYAN 1366M",
+      "kind": "trailhead_candidate",
+      "route_track_id": "cikuray-track-001",
+      "location": {
+        "latitude": -7.30049601,
+        "longitude": 107.83170909
+      },
+      "source_label_elevation_m": 1366,
+      "dem_candidate_elevation_m": 1357,
+      "elevation_quality": "dem_consensus_provisional",
+      "elevation_source": "OpenTopoData SRTM30m + ASTER30m consensus; not a field-survey elevation",
+      "db_record": {
+        "table": "public.hiking_checkpoints",
+        "publication_status": "published",
+        "source_index_matches_gpx": true
+      },
+      "source_ids": [
+        "S05",
+        "S06"
+      ],
+      "notes": "Waypoint label and position are retained as recorded. Repeated names such as POS 2/POS 3/POS 4 are separate points on different source tracks. A DEM candidate is not an official or surveyed elevation."
+    }
+  ],
+  "basecamps": [
+    {
+      "id": "pemancar-cilawu",
+      "name": "Pos Pemancar Cilawu",
+      "route_id": "pemancar-cilawu",
+      "operator": {
+        "name": "KTH Bakti Wilaku",
+        "relationship": "Perhutani KPH Garut published a cooperation agreement for the Pemancar route in 2024.",
+        "verification": "historic_partnership_documented_current_contract_not_checked",
+        "source_ids": [
+          "S02"
+        ]
+      },
+      "administrative_location": "RPH Cilawu, BKPH Bayongbong, Kabupaten Garut, Jawa Barat",
+      "location_candidates": [
+        {
+          "latitude": -7.30515266,
+          "longitude": 107.88178501,
+          "label": "POSPEMANCAR CILAWU 1510M",
+          "source_ids": [
+            "S05"
+          ],
+          "status": "source_waypoint_candidate_not_confirmed_basecamp_pin"
+        },
+        {
+          "latitude": -7.3064892748179275,
+          "longitude": 107.87942763353078,
+          "label": "Basecamp Pemancar coordinate from individual trip guide",
+          "source_ids": [
+            "S11"
+          ],
+          "status": "historical_unverified_coordinate"
+        }
+      ],
+      "public_contact_candidates": [
+        {
+          "value": "+62 831-9586-2454",
+          "type": "whatsapp",
+          "source_ids": [
+            "S08"
+          ],
+          "status": "reported_by_secondary_media_2026_not_directly_confirmed"
+        },
+        {
+          "value": "+62 831-9393-7904",
+          "type": "phone",
+          "source_ids": [
+            "S11"
+          ],
+          "status": "historical_2019_trip_report_conflicts_with_newer_report"
+        }
+      ],
+      "canonical_public_contact": null,
+      "facilities_verified": [],
+      "source_ids": [
+        "S02",
+        "S05",
+        "S08",
+        "S11"
+      ],
+      "verification": "partial"
+    },
+    {
+      "id": "tapak-geurot",
+      "name": "Basecamp Tapak Gerot / Cigedug",
+      "route_id": "tapak-geurot-cigedug",
+      "operator": {
+        "name": "Pengelola wisata pendakian Tapak Gerot; Ujang Ridwan disebut dalam publikasi Perhutani 2023",
+        "verification": "historic_operator_reference_current_contact_and_contract_unknown",
+        "source_ids": [
+          "S04"
+        ]
+      },
+      "administrative_location": "Desa Cigedug; kawasan hutan RPH/BKPH Bayongbong, Kabupaten Garut, Jawa Barat",
+      "location": null,
+      "public_contact": null,
+      "facilities_verified": [],
+      "source_ids": [
+        "S01",
+        "S04",
+        "S09"
+      ],
+      "verification": "partial_historical"
+    },
+    {
+      "id": "pamalayan-bayongbong",
+      "name": "Titik awal Pamalayan / Bayongbong",
+      "route_id": "bayongbong-pamalayan-ramayalan",
+      "operator": null,
+      "administrative_location": "Pamalayan, Kabupaten Garut, Jawa Barat",
+      "location_candidates": [
+        {
+          "latitude": -7.30049601,
+          "longitude": 107.83170909,
+          "label": "START RAMALAYAN 1366M",
+          "source_ids": [
+            "S05"
+          ],
+          "status": "waypoint_candidate_not_verified_basecamp_pin"
+        }
+      ],
+      "public_contact": null,
+      "facilities_verified": [],
+      "source_ids": [
+        "S01",
+        "S05"
+      ],
+      "verification": "needs_operator_and_access_confirmation"
+    },
+    {
+      "id": "cikajang-carik",
+      "name": "Titik awal Carik / Cikajang",
+      "route_id": "cikajang-olan-carik",
+      "operator": null,
+      "administrative_location": "Cikajang, Kabupaten Garut, Jawa Barat",
+      "location_candidates": [
+        {
+          "latitude": -7.35122144,
+          "longitude": 107.83578948,
+          "label": "START CARIK 1529M",
+          "source_ids": [
+            "S05"
+          ],
+          "status": "waypoint_candidate_not_verified_basecamp_pin"
+        }
+      ],
+      "public_contact": null,
+      "facilities_verified": [],
+      "source_ids": [
+        "S01",
+        "S05"
+      ],
+      "verification": "needs_operator_and_access_confirmation"
+    }
+  ],
+  "facilities": [
+    {
+      "id": "tapak-pos-2-rest-hut",
+      "route_id": "tapak-geurot-cigedug",
+      "location_label": "Pos 2",
+      "facility": "gubuk istirahat",
+      "status": "historical_reported_facility",
+      "source_ids": [
+        "S01"
+      ],
+      "last_source_date": "2023-08"
+    },
+    {
+      "id": "tapak-pos-3-shelter-warung-bathroom",
+      "route_id": "tapak-geurot-cigedug",
+      "location_label": "Pos 3",
+      "facility": [
+        "shelter",
+        "warung kopi/makanan",
+        "kamar mandi sederhana"
+      ],
+      "status": "historical_reported_facility",
+      "source_ids": [
+        "S01"
+      ],
+      "last_source_date": "2023-08"
+    },
+    {
+      "id": "tapak-pos-6-campsite",
+      "route_id": "tapak-geurot-cigedug",
+      "location_label": "Pos 6",
+      "facility": [
+        "shelter",
+        "area tenda"
+      ],
+      "status": "historical_reported_facility",
+      "source_ids": [
+        "S01"
+      ],
+      "last_source_date": "2023-08"
+    },
+    {
+      "id": "bayongbong-pos-2-parking-water",
+      "route_id": "bayongbong-pamalayan-ramayalan",
+      "location_label": "Pos 2",
+      "facility": [
+        "area parkir",
+        "air bersih dari penduduk setempat"
+      ],
+      "status": "historical_reported_facility",
+      "source_ids": [
+        "S01"
+      ],
+      "last_source_date": "2023-08"
+    },
+    {
+      "id": "pemancar-pos-1-water-warung",
+      "route_id": "pemancar-cilawu",
+      "location_label": "Pos 1",
+      "facility": [
+        "warung",
+        "sumber air"
+      ],
+      "status": "individual_trip_report_2019_not_currently_verified",
+      "source_ids": [
+        "S11"
+      ],
+      "last_source_date": "2019"
+    },
+    {
+      "id": "carik-stream-waypoint",
+      "route_id": "cikajang-olan-carik",
+      "location_label": "Waypoint SUNGAI",
+      "facility": [
+        "stream waypoint candidate"
+      ],
+      "status": "gpx_waypoint_only_not_proof_of_potable_or_accessible_water",
+      "source_ids": [
+        "S05"
+      ],
+      "last_source_date": "archive_trip_date_unknown"
+    }
+  ],
+  "safety": [
+    {
+      "id": "summit-wind",
+      "hazard": "strong_wind",
+      "description": "Publikasi Badan Geologi menyebut hembusan angin di puncak umumnya kencang dan kadang sangat kencang.",
+      "action": "Jangan mengandalkan area puncak sebagai lokasi berkemah yang aman tanpa arahan pengelola dan penilaian kondisi aktual.",
+      "status": "historical_general_hazard_reference",
+      "source_ids": [
+        "S01"
+      ]
+    },
+    {
+      "id": "steep-sections",
+      "hazard": "steep_and_ascending_terrain",
+      "description": "Beberapa segmen jalur digambarkan curam, menanjak, sempit atau agak terjal, tergantung rute.",
+      "action": "Sesuaikan rute dengan kemampuan dan periksa kondisi lapangan sebelum pendakian.",
+      "status": "route_description_from_2023_guide",
+      "source_ids": [
+        "S01"
+      ]
+    },
+    {
+      "id": "wildlife",
+      "hazard": "wildlife_presence",
+      "description": "Publikasi Badan Geologi menyebut keberadaan satwa liar di lereng; laporan perjalanan individual juga menceritakan perjumpaan dengan babi hutan.",
+      "action": "Jaga jarak dari satwa, simpan logistik tertutup dan jangan memberi makan satwa. Rincian jenis dan tingkat risiko belum diverifikasi oleh otoritas konservasi dalam pilot ini.",
+      "status": "general_reference_and_individual_report",
+      "source_ids": [
+        "S01",
+        "S11"
+      ]
+    },
+    {
+      "id": "west-java-dry-season-hiking-restriction",
+      "hazard": "regulatory_and_wildfire_restriction",
+      "description": "Surat Edaran Gubernur Jawa Barat Nomor 116/KH.02.04.03/ASDA EKBANG tanggal 30 Agustus 2026 dilaporkan melarang seluruh aktivitas pendakian gunung/hutan di wilayah Jawa Barat selama musim kemarau untuk mengurangi risiko kebakaran.",
+      "action": "Jangan mendaki sebelum larangan dicabut atau ada pengecualian tertulis yang dapat diverifikasi dari pihak berwenang. Laporan pembukaan melalui media bukan pengganti klarifikasi resmi.",
+      "status": "official_government_communication_plus_secondary_circular_text_report_no_revocation_found_by_2026_10_30",
+      "source_ids": [
+        "S12",
+        "S13",
+        "S14"
+      ]
+    }
+  ],
+  "data_quality": {
+    "gpx": {
+      "path": "gpx/jawa-barat/Gunung Cikuray.gpx",
+      "sha256": "473294fb502ca0c581ac73b6dfa92092e14c9e906d9ab5f8ddbd4fc17e6cd332",
+      "size_bytes": 17290,
+      "track_count": 3,
+      "trackpoint_count": 268,
+      "waypoint_count": 20,
+      "trackpoints_with_elevation": 0,
+      "finding": "GPX contains 3 tracks, 268 trackpoints and 20 waypoints; none of the trackpoints contain elevation values.",
+      "distance_validation": {
+        "method": "Haversine sum of consecutive GPX trackpoint coordinates",
+        "status": "passed",
+        "tracks": [
+          {
+            "track": "Cikuray 1",
+            "calculated_m": 4365,
+            "catalog_m": 4365,
+            "match": true
+          },
+          {
+            "track": "Cikuray 2",
+            "calculated_m": 3529,
+            "catalog_m": 3529,
+            "match": true
+          },
+          {
+            "track": "Cikuray 3",
+            "calculated_m": 4578,
+            "catalog_m": 4578,
+            "match": true
+          }
+        ]
+      }
+    },
+    "database": {
+      "mountain_slug": "cikuray",
+      "published_trails": 3,
+      "published_checkpoints": 20,
+      "operators": 0,
+      "route_versions": 0,
+      "route_import_records_linked_to_cikuray": 0,
+      "checkpoint_elevation_status": "20/20 dem_consensus_provisional",
+      "checkpoint_elevation_source": "opentopodata-dem-consensus"
+    },
+    "readiness": {
+      "data_contract": "ready_for_scale_after_pilot",
+      "source_provenance": "ready",
+      "route_track_normalization": "ready_for_source_track_records_not_official_route_claims",
+      "narrative_pattern": "ready",
+      "basecamp_coverage": "partial",
+      "current_operational_status": "not_ready_pending_governor_circular_clearance",
+      "checkpoint_elevation": "provisional_only",
+      "media_reuse_rights": "requires_asset_specific_permission_review"
+    },
+    "limitations": [
+      "The three ASTACALA tracks are source recordings, not verified current official trail centerlines.",
+      "Track distances are archived one-way track lengths; elevation gain cannot be calculated from the source track because it contains no trackpoint elevations.",
+      "All 20 Cikuray checkpoint elevations are DEM consensus candidates, not field-survey elevations.",
+      "A summit waypoint (-7.32257537, 107.85979869) differs by approximately 85 m from the common recorded endpoint of the three tracks; both are preserved without snapping.",
+      "The Cikuray 1/Ramayalan–Pamalayan and Cikuray 3/Carik–Cikajang name associations are provisional mappings based on source waypoint labels and cross-reference descriptions.",
+      "The operator table in Supabase currently contains no hiking operator rows; route partnership articles document historical agreements, not current contracts or contacts.",
+      "Pemancar and Cintanagara reopening, and Tapak Gerot closure, are secondary media reports dated 2, 4 and 19 October 2026; no direct current operator confirmation was obtained.",
+      "Basecamp coordinates and phone candidates conflict or are not independently verified; canonical public contacts are intentionally left null.",
+      "Facilities and access details drawn from the 2023 geological guide or a 2019 trip report are historical references and must not be presented as currently available without confirmation.",
+      "Surat Edaran Gubernur Jawa Barat Nomor 116/KH.02.04.03/ASDA EKBANG tanggal 30 Agustus 2026 dilaporkan melarang aktivitas pendakian gunung/hutan di seluruh Jawa Barat selama musim kemarau. Laporan media tentang pembukaan Pemancar (4 Okt) dan Cintanagara (2 Okt) bertentangan dengan surat edaran; belum ditemukan pencabutan atau pengecualian tertulis hingga 30 Okt 2026. Jangan mempublikasikan status buka berdasarkan laporan sekunder."
+    ],
+    "research_notes": {
+      "legal_status": "Provincial dry-season restriction is a material constraint for all Cikuray route records.",
+      "current_open_status": "not_claimed",
+      "search_cutoff_date": "2026-10-30",
+      "primary_documents_missing": [
+        "signed copy of Governor Circular 116/KH.02.04.03/ASDA EKBANG",
+        "written revocation or route-specific clearance, if any"
+      ]
+    }
+  }
+}
