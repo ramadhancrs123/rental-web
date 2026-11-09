@@ -13,6 +13,7 @@ import BookingNoticeDialog from "@/components/booking-notice-dialog"
 const NAV_ITEMS = [
   { title: "Beranda", href: "/" },
   { title: "Katalog", href: "/katalog" },
+  { title: "Cek Booking", href: "/booking/portal" },
   { title: "Tentang Kami", href: "/#tentang-kami" },
   { title: "Keunggulan", href: "/#keunggulan" },
   { title: "Destinasi", href: "/destinasi" },

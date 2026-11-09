@@ -1,28 +1,70 @@
 import Link from "next/link"
-import { ArrowLeft, ArrowUpRight, MessageCircle, ShieldCheck } from "lucide-react"
+import { ArrowLeft, ShieldCheck } from "lucide-react"
+import BookingForm from "./booking-form"
+import { fetchCatalog } from "@/lib/catalog"
 
 export const metadata = {
   title: "Booking | Akasha Outdoor Rent",
-  description: "Hubungi pengelola Akasha untuk melakukan pemesanan perlengkapan outdoor.",
+  description: "Ajukan permintaan rental dan pembelian perlengkapan outdoor Akasha.",
 }
 
-const WHATSAPP_URL = "https://wa.me/6287864959365?text=" + encodeURIComponent(
-  "Halo Akasha Outdoor Rent, saya ingin melakukan booking perlengkapan outdoor. Mohon informasi ketersediaan dan tarifnya."
-)
+type BookingSearchParams = {
+  add?: string | string[]
+  item?: string | string[]
+}
 
-export default function BookingPage() {
+export default async function BookingPage({
+  searchParams,
+}: {
+  searchParams: Promise<BookingSearchParams>
+}) {
+  const params = await searchParams
+  const initialAdd = Array.isArray(params.add) ? params.add[0] : params.add ?? null
+  const focusItemId = Array.isArray(params.item) ? params.item[0] : params.item ?? null
+  let catalog
+  try {
+    catalog = await fetchCatalog()
+  } catch {
+    return (
+      <main className="min-h-[70vh] px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl">
+          <Link href="/katalog" className="inline-flex items-center gap-2 text-sm text-muted-foreground"><ArrowLeft className="size-4" /> Kembali ke katalog</Link>
+          <div role="alert" className="mt-6 rounded-3xl border border-destructive/25 bg-destructive/[0.04] p-6">
+            <h1 className="text-xl font-semibold">Katalog booking belum dapat dimuat</h1>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Data produk dan tarif belum dapat dibaca dari layanan katalog. Tidak ada permintaan yang dikirim. Silakan coba kembali atau hubungi pengelola.</p>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  const bookableCount = catalog.items.reduce(
+    (sum, item) => sum + (item.directRentalOption ? 1 : 0) + item.variants.length,
+    0,
+  ) + catalog.packages.filter((item) => item.canBook).length + catalog.sales.length
+
   return (
-    <div className="min-h-[70vh] bg-background px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-      <div className="mx-auto max-w-2xl">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"><ArrowLeft className="size-4" /> Kembali ke beranda</Link>
-        <div className="mt-8 rounded-[2rem] border border-border/70 bg-card p-6 shadow-xl shadow-slate-950/5 sm:p-10">
-          <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><ShieldCheck className="size-7" /></span>
-          <p className="mt-6 text-xs font-semibold tracking-[0.16em] text-primary uppercase">Pemesanan online</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Fitur booking sedang dikembangkan.</h1>
-          <p className="mt-4 text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7">Fitur pemesanan online sedang dalam pengembangan. Hubungi pengelola untuk melakukan booking. Pengelola akan membantu memeriksa ketersediaan perlengkapan, tarif, tanggal sewa, dan ketentuan serah-terima.</p>
-          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#167e57] px-6 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#126c4a]"><MessageCircle className="size-4" /> Hubungi pengelola <ArrowUpRight className="size-4" /></a>
+    <main className="min-h-[70vh] bg-background px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+      <div className="mx-auto max-w-3xl">
+        <Link href="/katalog" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Kembali ke katalog</Link>
+        <header className="mt-6 rounded-3xl border border-border/70 bg-card p-5 sm:p-7">
+          <span className="inline-flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary"><ShieldCheck className="size-5" /></span>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-primary">Permintaan online</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Ajukan booking Akasha</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Pilih rental, paket, atau barang pembelian. Permintaan akan dicatat untuk ditinjau pengelola. Stok tidak dikunci dan ketersediaan belum dijamin.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
+            <p className="text-xs text-muted-foreground">{bookableCount} opsi tersedia dari katalog publik.</p>
+            <Link href="/booking/portal" className="text-xs font-semibold text-primary underline underline-offset-4">
+              Sudah punya booking? Cek status
+            </Link>
+          </div>
+        </header>
+        <div className="mt-5">
+          <BookingForm catalog={catalog} initialAdd={initialAdd} focusItemId={focusItemId} />
         </div>
       </div>
-    </div>
+    </main>
   )
 }

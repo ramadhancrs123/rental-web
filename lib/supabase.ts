@@ -15,8 +15,8 @@ export function getSupabase(): SupabaseClient {
   return cached
 }
 
-export const USAHA_SLUG = process.env.NEXT_PUBLIC_USAHA_SLUG ?? "akasha-store"
-export const WA_NUMBER = process.env.NEXT_PUBLIC_WA_NUMBER ?? "6281234567890"
+export const USAHA_SLUG = process.env.AKASHA_SMART_BOOKING_USAHA_SLUG ?? "akasha-outdoor"
+export const WA_NUMBER = process.env.NEXT_PUBLIC_WA_NUMBER ?? "6287864959365"
 
 export function formatRupiah(value: number): string {
   return new Intl.NumberFormat("id-ID", {
