@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const message = safeStatus === 400 || safeStatus === 404
       ? "Data booking belum valid. Periksa kembali item, periode, dan informasi customer."
       : safeStatus === 409
-        ? "Permintaan booking mengalami konflik. Muat ulang dan coba kembali."
+        ? "Permintaan sebelumnya mungkin sudah diproses. Periksa portal booking atau hubungi pengelola sebelum mengirim ulang."
         : safeStatus === 429
           ? "Terlalu banyak percobaan booking dari perangkat ini. Coba kembali beberapa saat lagi."
           : "Booking belum dapat diproses. Silakan coba kembali."

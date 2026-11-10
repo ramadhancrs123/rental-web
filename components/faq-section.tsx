@@ -14,7 +14,7 @@ const FAQS = [
   },
   {
     q: "Apakah harga yang tampil adalah harga akhir?",
-    a: "Harga di katalog adalah harga sewa per hari sebagai estimasi. Harga akhir dikonfirmasi admin saat reservasi disetujui — termasuk kebijakan deposit atau denda keterlambatan.",
+    a: "Harga di katalog ditampilkan untuk periode 2 hari 1 malam sebagai estimasi. Nilai dan ketersediaan akhir akan dikonfirmasi pengelola setelah detail booking diperiksa.",
   },
   {
     q: "Bagaimana aturan toleransi pengembalian?",

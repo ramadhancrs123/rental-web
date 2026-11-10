@@ -24,7 +24,7 @@ export default function BookingNoticeDialog({
   purpose = "rental",
   itemName,
   officialBookingUrl,
-  href = "/booking",
+  href = "/katalog",
 }: BookingNoticeDialogProps) {
   const isHikingTicket = purpose === "hiking-ticket"
   const safeOfficialUrl = officialBookingUrl?.startsWith("https://") ? officialBookingUrl : null

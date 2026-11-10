@@ -63,6 +63,7 @@ export type CatalogSaleOption = {
   discountPercent: number
   currency_code: string
   inventory_mode: "serialized" | "quantity" | null
+  imageUrl?: string | null
 }
 
 export type CatalogPackage = {
@@ -361,6 +362,7 @@ async function loadCatalogBase(): Promise<CatalogBase> {
     discountPercent: toNumber(row.diskon_persen),
     currency_code: row.currency_code?.trim() || "IDR",
     inventory_mode: row.inventory_mode ?? "serialized",
+    imageUrl: getPublicMediaUrl(coverMediaByProduct.get(row.barang_id)),
   }))
 
   return {
@@ -459,7 +461,7 @@ const CACHE_OPTIONS = {
 
 const getCachedCatalogBase = unstable_cache(
   loadCatalogBase,
-  ["public-catalog-base-v4", USAHA_SLUG],
+  ["public-catalog-base-v5", USAHA_SLUG],
   CACHE_OPTIONS,
 )
 

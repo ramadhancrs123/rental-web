@@ -4,7 +4,7 @@ import BookingPortalClient from "./portal-client"
 import { fetchCatalog } from "@/lib/catalog"
 
 export const metadata = {
-  title: "Portal Booking | Akasha Outdoor Rent",
+  title: "Portal Customer | Akasha Smart Booking",
   description: "Lihat status, rincian, ketersediaan, dan ajukan perubahan booking Akasha.",
   robots: { index: false, follow: false },
   referrer: "no-referrer",
@@ -19,13 +19,13 @@ export default async function BookingPortalPage() {
   }))
 
   return (
-    <main className="min-h-[70vh] bg-background px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-      <div className="mx-auto max-w-4xl">
-        <Link href="/booking" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" /> Kembali ke booking
+    <div className="min-h-[70vh] bg-background px-4 py-6 sm:px-6 sm:py-9 lg:px-8">
+      <div className="mx-auto max-w-6xl">
+        <Link href="/katalog" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="size-4" /> Kembali ke katalog
         </Link>
-        <div className="mt-6"><BookingPortalClient catalog={catalog} /></div>
+        <div className="mt-4"><BookingPortalClient catalog={catalog} /></div>
       </div>
-    </main>
+    </div>
   )
 }

@@ -7,6 +7,7 @@ import { AlertCircle, Check, Copy, LoaderCircle, MessageCircle, Package, Shoppin
 import { formatRupiah, WA_NUMBER } from "@/lib/supabase"
 import type { Catalog } from "@/lib/catalog"
 import { createPortalAccessUrl } from "@/lib/akasha-smart-booking/portal-link"
+import { createClientId } from "@/lib/client-id"
 import {
   getSmartBookingCatalogOptions,
   toSmartBookingLine,
@@ -44,7 +45,7 @@ function addDateDays(value: string, days: number): string {
 }
 
 function createIdempotencyKey(): string {
-  return window.crypto.randomUUID()
+  return createClientId()
 }
 
 const CART_STORAGE_KEY = "akasha-smart-booking-cart-v1"
@@ -572,7 +573,7 @@ Masuk ke portal cukup dengan kode akses, atau buka tautan pribadi di bawah. Nomo
               <strong>{formatRupiah(success.total_estimate ?? 0)}</strong>
             </div>
             <p className="mt-3 text-xs leading-5 text-muted-foreground">
-              Nilai rental merupakan tarif dasar per siklus, bukan tagihan final. Harga dan ketersediaan akan diperiksa kembali oleh pengelola. Booking ini tidak mengunci stok dan belum menjadi transaksi.
+              Nilai rental merupakan estimasi tarif untuk periode 2 hari 1 malam per item, bukan tagihan final. Harga dan ketersediaan akan diperiksa kembali oleh pengelola. Booking ini tidak mengunci stok dan belum menjadi transaksi.
             </p>
           </div>
 
@@ -647,7 +648,12 @@ Masuk ke portal cukup dengan kode akses, atau buka tautan pribadi di bawah. Nomo
             Belum ada opsi rental publik yang memiliki tarif aktif.
           </p>
         ) : (
-          <div className="mt-5 space-y-5">
+          <details className="mt-4 rounded-2xl border border-border/60 p-3 sm:p-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold">
+              <span>Atur pilihan rental</span>
+              <span className="text-xs font-medium text-muted-foreground">{selectedRentals.length} jenis · {rentalCount} unit</span>
+            </summary>
+            <div className="mt-5 space-y-5">
             {groupRentalByCategory(rentals).map(([category, group]) => (
               <div key={category}>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">{category}</h3>
@@ -673,7 +679,8 @@ Masuk ke portal cukup dengan kode akses, atau buka tautan pribadi di bawah. Nomo
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          </details>
         )}
         {hasRental ? (
           <>
@@ -691,7 +698,7 @@ Masuk ke portal cukup dengan kode akses, atau buka tautan pribadi di bawah. Nomo
                 <input type="date" min={pickupDate || today} value={returnDate} onChange={(event) => setReturnDate(event.target.value)} className="h-11 w-full rounded-xl border border-border bg-background px-3" />
               </label>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">Tarif yang ditampilkan adalah tarif dasar per siklus. Periode dan nilai final diperiksa kembali oleh pengelola.</p>
+            <p className="mt-2 text-xs text-muted-foreground">Tarif yang ditampilkan merupakan estimasi untuk periode 2 hari 1 malam. Nilai final diperiksa kembali oleh pengelola.</p>
           </>
         ) : (
           <p className="mt-4 rounded-xl bg-muted/45 p-3 text-xs leading-5 text-muted-foreground">
@@ -711,7 +718,12 @@ Masuk ke portal cukup dengan kode akses, atau buka tautan pribadi di bawah. Nomo
         {catalog.sales.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Belum ada barang jual publik yang aktif.</p>
         ) : (
-          <div className="mt-4 divide-y divide-border/60 rounded-2xl border border-border/60">
+          <details className="mt-4 rounded-2xl border border-border/60 p-3 sm:p-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold">
+              <span>Atur pilihan pembelian</span>
+              <span className="text-xs font-medium text-muted-foreground">{selectedSales.length} jenis · {saleCount} unit</span>
+            </summary>
+            <div className="mt-4 divide-y divide-border/60 rounded-2xl border border-border/60">
             {sales.map((option) => {
               const count = saleQty[option.key] ?? 0
               return (
@@ -728,7 +740,8 @@ Masuk ke portal cukup dengan kode akses, atau buka tautan pribadi di bawah. Nomo
                 </div>
               )
             })}
-          </div>
+            </div>
+          </details>
         )}
       </section>
 
@@ -799,7 +812,7 @@ Masuk ke portal cukup dengan kode akses, atau buka tautan pribadi di bawah. Nomo
           <strong className="text-2xl font-bold text-primary">{formatRupiah(totalEstimate)}</strong>
         </div>
         <p className="mt-2 text-xs leading-5 text-muted-foreground">
-          Nilai rental menggunakan satu siklus tarif aktif per item, sedangkan pembelian dihitung satu kali. Total rental final mengikuti durasi dan ketentuan serah-terima yang ditetapkan saat pemeriksaan pengelola. Ini bukan invoice atau tagihan final.
+          Nilai rental ditampilkan untuk periode 2 hari 1 malam per item, sedangkan pembelian dihitung satu kali. Total akhir mengikuti durasi dan ketentuan serah-terima yang ditetapkan saat pemeriksaan pengelola. Ini bukan invoice atau tagihan final.
         </p>
         {error && (
           <div role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
