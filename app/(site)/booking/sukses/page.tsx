@@ -1,7 +1,7 @@
 import BookingSuccessClient from "./booking-success-client"
 
 export const metadata = {
-  title: "Booking Berhasil | Akasha Outdoor",
+  title: "Booking Berhasil | Akasha Smart Booking – Akasha Outdoor",
   description: "Simpan bukti, kode akses, dan QR portal Akasha Smart Booking.",
 }
 

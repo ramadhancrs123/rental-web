@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import {
   ArrowRight, CalendarDays, Check, ChevronRight, CircleAlert, Minus, Package,
   PackageCheck, Plus, Search, ShoppingBag, ShoppingCart, SlidersHorizontal,
-  Sparkles, Tent, Trash2, X, LoaderCircle, ShieldCheck,
+  Tent, Trash2, X, LoaderCircle, ShieldCheck,
 } from "lucide-react"
 import type { Catalog, CatalogItem, CatalogPackage, CatalogRentalOption, CatalogSaleOption } from "@/lib/catalog"
 import { formatRupiah } from "@/lib/supabase"
@@ -565,8 +565,9 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
             <Link href="/" className="hover:text-white">Beranda</Link><ChevronRight className="size-3" /><span className="text-white">Katalog</span>
           </div>
           <div className="mt-5 max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold tracking-[0.14em] text-orange-200 uppercase">
-              <Sparkles className="size-3.5" /> Akasha Outdoor
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold tracking-[0.14em] text-white/90 uppercase">
+              <Image src="/logo.png" alt="" width={16} height={16} className="size-4 rounded-sm object-contain" />
+              AKASHA SMART BOOKING
             </span>
             <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-4xl">Katalog Perlengkapan</h1>
             <p className="mt-2 max-w-xl text-xs leading-5 text-white/75 sm:text-sm">Temukan perlengkapan yang Anda butuhkan, atur jumlah, lalu pilih jadwal sewa.</p>

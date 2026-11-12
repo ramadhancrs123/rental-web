@@ -11,6 +11,7 @@ import { fetchPublicTestimonials } from "@/lib/testimonials"
 import TestimonialSection from "@/components/testimonial-section"
 import AboutUs from "@/components/about-us"
 import BookingNoticeDialog from "@/components/booking-notice-dialog"
+import PwaInstallButton from "@/components/pwa-install-button"
 import { WA_NUMBER } from "@/lib/supabase"
 
 function SectionHeading({ eyebrow, title, italicWord, desc, align = "center" }: {
@@ -190,6 +191,16 @@ export default async function LandingPage() {
               <a href={waLink} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/25 bg-white/5 px-6 text-sm font-semibold text-white transition hover:bg-white/10">Tanya via WhatsApp <ArrowUpRight className="size-4" /></a>
             </div>
           </ScrollReveal>
+        </div>
+      </section>
+
+      <section aria-label="Instal aplikasi Akasha" className="px-4 pb-8 pt-4 sm:px-6 sm:pb-10 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card/65 px-4 py-4 sm:flex-row sm:px-5">
+          <div className="text-center sm:text-left">
+            <p className="text-xs font-semibold tracking-tight">Akses Akasha lebih praktis</p>
+            <p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">Pasang Akasha Outdoor di perangkat Anda untuk membukanya seperti aplikasi.</p>
+          </div>
+          <PwaInstallButton className="h-9 px-4" />
         </div>
       </section>
     </div>

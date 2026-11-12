@@ -17,12 +17,20 @@ export type SmartBookingCatalogOption = {
   priceDurationUnit: string | null
   currency_code: string
   inventory_mode: "serialized" | "quantity" | null
+  deskripsi: string | null
+  imageUrl: string | null
 }
 
 function rentalItemOptions(catalog: Catalog): SmartBookingCatalogOption[] {
   const items = catalog.items.flatMap((item) => {
     const direct: SmartBookingCatalogOption[] = item.directRentalOption
-      ? [{ ...item.directRentalOption, kind: "rental", target_kind: "product" }]
+      ? [{
+          ...item.directRentalOption,
+          kind: "rental",
+          target_kind: "product",
+          deskripsi: item.deskripsi,
+          imageUrl: item.imageUrl,
+        }]
       : []
 
     const variants: SmartBookingCatalogOption[] = item.variants.map((variant) => ({
@@ -42,6 +50,8 @@ function rentalItemOptions(catalog: Catalog): SmartBookingCatalogOption[] {
       priceDurationUnit: variant.priceDurationUnit,
       currency_code: variant.currency_code,
       inventory_mode: variant.inventory_mode,
+      deskripsi: variant.deskripsi ?? item.deskripsi,
+      imageUrl: variant.imageUrl ?? item.imageUrl,
     }))
 
     return [...direct, ...variants]
@@ -66,6 +76,8 @@ function rentalItemOptions(catalog: Catalog): SmartBookingCatalogOption[] {
       priceDurationUnit: item.priceDurationUnit,
       currency_code: item.currency_code,
       inventory_mode: null,
+      deskripsi: item.deskripsi,
+      imageUrl: item.imageUrl,
     }))
 
   return [...items, ...packages]
@@ -89,6 +101,8 @@ function saleItemOptions(items: CatalogSaleOption[]): SmartBookingCatalogOption[
     priceDurationUnit: null,
     currency_code: item.currency_code,
     inventory_mode: item.inventory_mode,
+    deskripsi: item.deskripsi,
+    imageUrl: item.imageUrl ?? null,
   }))
 }
 
@@ -119,4 +133,12 @@ export function smartBookingOptionLabel(option: SmartBookingCatalogOption): stri
     ? option.barang_nama + " · " + option.varian_nama
     : option.barang_nama
   return (option.kind === "rental" ? "Sewa · " : "Beli · ") + target
+}
+
+export function hasSmartBookingQuantityChanges(
+  original: Record<string, number>,
+  draft: Record<string, number>,
+): boolean {
+  const keys = new Set([...Object.keys(original), ...Object.keys(draft)])
+  return [...keys].some((key) => (original[key] ?? 0) !== (draft[key] ?? 0))
 }
