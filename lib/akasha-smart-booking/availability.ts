@@ -6,10 +6,10 @@ export type AvailabilityIndicator = {
 }
 
 const INDICATORS: Record<string, AvailabilityIndicator> = {
-  ready_now: { label: "Terlihat siap saat diperiksa", tone: "success" },
-  all_components_ready_now: { label: "Komponen terlihat siap", tone: "success" },
-  available_now: { label: "Terlihat tersedia saat diperiksa", tone: "success" },
-  other_variants_available: { label: "Varian lain terlihat tersedia", tone: "warning" },
+  ready_now: { label: "Unit tersedia untuk disewa", tone: "success" },
+  all_components_ready_now: { label: "Semua barang dalam paket tersedia", tone: "success" },
+  available_now: { label: "Stok barang tersedia", tone: "success" },
+  other_variants_available: { label: "Varian lain tersedia", tone: "warning" },
   potential_return: { label: "Bergantung pada pengembalian", tone: "warning" },
   potential_return_may_help: { label: "Mungkin tersedia setelah pengembalian", tone: "warning" },
   potential_returns_may_help: { label: "Mungkin tersedia setelah pengembalian", tone: "warning" },

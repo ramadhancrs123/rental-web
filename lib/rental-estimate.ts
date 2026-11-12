@@ -19,6 +19,30 @@ function parseDateOnly(value: string): number | null {
   return timestamp
 }
 
+/**
+ * Keep an already-booked pickup date selectable when it has become historical.
+ * Other past pickup dates remain disallowed.
+ */
+export function getMinimumSchedulePickupDate(
+  existingPickupDate: string | null,
+  today: string,
+): string {
+  if (parseDateOnly(existingPickupDate ?? "") !== null && existingPickupDate! < today) {
+    return existingPickupDate!
+  }
+  return today
+}
+
+/** An unchanged historical pickup date may be retained for a return-date extension. */
+export function isValidSchedulePickupDate(
+  candidatePickupDate: string,
+  existingPickupDate: string | null,
+  today: string,
+): boolean {
+  if (parseDateOnly(candidatePickupDate) === null || parseDateOnly(today) === null) return false
+  return candidatePickupDate >= today || candidatePickupDate === existingPickupDate
+}
+
 /** Calendar nights between date-only pickup and return dates. */
 export function getCalendarNightCount(pickupDate: string | null, returnDate: string | null): number | null {
   if (!pickupDate || !returnDate) return null

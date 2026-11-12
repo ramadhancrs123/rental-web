@@ -1,5 +1,5 @@
 import { Inter, Instrument_Serif } from "next/font/google"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 
 import "./globals.css"
 import "maplibre-gl/dist/maplibre-gl.css"
@@ -12,6 +12,19 @@ export const metadata: Metadata = {
   description:
     "Sewa tenda dan perlengkapan outdoor di Garut, Jawa Barat. Booking online, konfirmasi WhatsApp, dan toleransi pengembalian hingga 10 jam sesuai ketentuan rental.",
   keywords: "sewa tenda, rental outdoor, sewa alat camping, tracking pole, akasha outdoor rent",
+  applicationName: "Akasha Smart Booking",
+  appleWebApp: {
+    capable: true,
+    title: "Akasha",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/akasha-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/akasha-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     title: "Akasha Outdoor Rent | Petualanganmu Dimulai dari Sini",
     description:
@@ -19,6 +32,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "id_ID",
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#e87516" },
+    { media: "(prefers-color-scheme: dark)", color: "#14283a" },
+  ],
+  colorScheme: "light dark",
 }
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })

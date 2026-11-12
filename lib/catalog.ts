@@ -33,6 +33,7 @@ export type CatalogVariant = {
   priceDurationUnit: string
   currency_code: string
   inventory_mode: "serialized" | "quantity" | null
+  imageUrl: string | null
 }
 
 export type CatalogItem = {
@@ -165,6 +166,7 @@ type PublicPackagePromo = {
 
 type PublicMedia = {
   barang_id?: string
+  varian_barang_id?: string
   paket_sewa_id?: string
   storage_bucket: string
   storage_path: string
@@ -268,21 +270,47 @@ async function loadCatalogBase(): Promise<CatalogBase> {
   const saleRows = (saleRes.data ?? []) as PublicSaleRow[]
   const productIds = [...new Set(products.map((row) => row.barang_id))]
 
-  const mediaRes = productIds.length
-    ? await sb
-        .from("v_public_barang_media")
-        .select("barang_id,storage_bucket,storage_path,media_type,urutan,is_cover")
-        .in("barang_id", productIds)
-        .order("is_cover", { ascending: false })
-        .order("urutan", { ascending: true })
-    : { data: [] as PublicMedia[], error: null }
+  const variantIds = [...new Set([
+    ...rentalRows.map((row) => row.varian_barang_id),
+    ...saleRows.map((row) => row.varian_barang_id),
+  ].filter((id): id is string => Boolean(id)))]
+
+  const [mediaRes, variantMediaRes] = await Promise.all([
+    productIds.length
+      ? sb
+          .from("v_public_barang_media")
+          .select("barang_id,storage_bucket,storage_path,media_type,urutan,is_cover")
+          .in("barang_id", productIds)
+          .order("is_cover", { ascending: false })
+          .order("urutan", { ascending: true })
+      : Promise.resolve({ data: [] as PublicMedia[], error: null }),
+    variantIds.length
+      ? sb
+          .from("varian_barang_media")
+          .select("varian_barang_id,storage_bucket,storage_path,media_type,urutan,is_cover")
+          .in("varian_barang_id", variantIds)
+          .eq("storage_bucket", PUBLIC_MEDIA_BUCKET)
+          .eq("status", "valid")
+          .like("media_type", "image/%")
+          .order("is_cover", { ascending: false })
+          .order("urutan", { ascending: true })
+      : Promise.resolve({ data: [] as PublicMedia[], error: null }),
+  ])
 
   if (mediaRes.error) throw mediaRes.error
+  if (variantMediaRes.error) throw variantMediaRes.error
 
   const coverMediaByProduct = new Map<string, PublicMedia>()
   for (const media of (mediaRes.data ?? []) as PublicMedia[]) {
     if (media.barang_id && !coverMediaByProduct.has(media.barang_id)) {
       coverMediaByProduct.set(media.barang_id, media)
+    }
+  }
+
+  const coverMediaByVariant = new Map<string, PublicMedia>()
+  for (const media of (variantMediaRes.data ?? []) as PublicMedia[]) {
+    if (media.varian_barang_id && !coverMediaByVariant.has(media.varian_barang_id)) {
+      coverMediaByVariant.set(media.varian_barang_id, media)
     }
   }
 
@@ -325,6 +353,8 @@ async function loadCatalogBase(): Promise<CatalogBase> {
         priceDurationUnit: option.priceDurationUnit ?? "hari",
         currency_code: option.currency_code,
         inventory_mode: option.inventory_mode,
+        imageUrl: getPublicMediaUrl(coverMediaByVariant.get(option.varian_barang_id as string))
+          ?? getPublicMediaUrl(coverMediaByProduct.get(product.barang_id)),
       }))
 
     const directRentalOption = rentalOptions.find((option) => option.kind === "product") ?? null
@@ -362,7 +392,9 @@ async function loadCatalogBase(): Promise<CatalogBase> {
     discountPercent: toNumber(row.diskon_persen),
     currency_code: row.currency_code?.trim() || "IDR",
     inventory_mode: row.inventory_mode ?? "serialized",
-    imageUrl: getPublicMediaUrl(coverMediaByProduct.get(row.barang_id)),
+    imageUrl: (row.varian_barang_id
+      ? getPublicMediaUrl(coverMediaByVariant.get(row.varian_barang_id))
+      : null) ?? getPublicMediaUrl(coverMediaByProduct.get(row.barang_id)),
   }))
 
   return {

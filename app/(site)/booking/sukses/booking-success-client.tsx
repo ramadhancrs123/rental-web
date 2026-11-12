@@ -3,304 +3,13 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import QRCode from "qrcode"
 import { ArrowRight, Check, Clipboard, Download, ExternalLink, LoaderCircle, MessageCircle, ShieldCheck } from "lucide-react"
 import { formatRupiah, WA_NUMBER } from "@/lib/supabase"
 import { calculateRentalEstimate, calculateTariffPeriodsForDates, formatRentalStayLabel } from "@/lib/rental-estimate"
 import { createAdminWhatsappUrl } from "@/lib/akasha-smart-booking/admin-whatsapp"
+import { createBookingReceiptQr, exportBookingReceipt, type BookingReceipt } from "@/lib/akasha-smart-booking/booking-receipt"
 
 const SUCCESS_KEY = "akasha-smart-booking-success-v1"
-
-type ReceiptLine = {
-  id: string
-  kind: "rental" | "sale"
-  name: string
-  category: string
-  variant: string | null
-  quantity: number
-  price: number
-  normalPrice: number
-  discountPercent: number
-  durationValue: number | null
-  durationUnit: string | null
-}
-
-type BookingReceipt = {
-  reference_code: string
-  access_code: string | null
-  portal_link_url: string | null
-  credential_requires_rotation: boolean
-  workflow_status: string
-  total_estimate: number
-  currency_code: string
-  customer_name: string
-  customer_phone: string
-  pickup_date: string | null
-  return_date: string | null
-  stay_duration_label?: string | null
-  lines: ReceiptLine[]
-  created_at: string
-}
-
-function drawWrapped(
-  context: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  maxWidth: number,
-  lineHeight: number,
-) {
-  const words = text.split(/\s+/)
-  let line = ""
-  let nextY = y
-  for (const word of words) {
-    const candidate = line ? line + " " + word : word
-    if (context.measureText(candidate).width > maxWidth && line) {
-      context.fillText(line, x, nextY)
-      line = word
-      nextY += lineHeight
-    } else {
-      line = candidate
-    }
-  }
-  if (line) {
-    context.fillText(line, x, nextY)
-    nextY += lineHeight
-  }
-  return nextY
-}
-
-function loadImage(source: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new window.Image()
-    image.onload = () => resolve(image)
-    image.onerror = reject
-    image.src = source
-  })
-}
-
-async function createReceiptCanvas(data: BookingReceipt, qrDataUrl: string | null) {
-  const width = 900
-  const height = 1260 + data.lines.length * 78 + (data.portal_link_url ? 150 : 40)
-  const canvas = document.createElement("canvas")
-  canvas.width = width
-  canvas.height = height
-  const context = canvas.getContext("2d")
-  if (!context) throw new Error("Perangkat tidak dapat membuat gambar nota.")
-
-  context.fillStyle = "#ffffff"
-  context.fillRect(0, 0, width, height)
-  context.fillStyle = "#172a35"
-  context.fillRect(0, 0, width, 14)
-
-  let y = 78
-  try {
-    const logo = await loadImage("/logo.png")
-    context.drawImage(logo, 72, y - 10, 100, 100)
-  } catch {
-    context.fillStyle = "#172a35"
-    context.font = "bold 34px Arial"
-    context.fillText("AKASHA", 72, y + 48)
-  }
-
-  context.fillStyle = "#172a35"
-  context.font = "bold 34px Arial"
-  context.fillText("AKASHA OUTDOOR", 200, y + 22)
-  context.fillStyle = "#64748b"
-  context.font = "22px Arial"
-  context.fillText("BUKTI AKASHA SMART BOOKING", 200, y + 58)
-  y += 140
-
-  const rule = () => {
-    context.strokeStyle = "#dbe2e8"
-    context.lineWidth = 2
-    context.beginPath()
-    context.moveTo(72, y)
-    context.lineTo(width - 72, y)
-    context.stroke()
-    y += 30
-  }
-  const labelValue = (label: string, value: string, strong = false) => {
-    context.fillStyle = "#64748b"
-    context.font = "20px Arial"
-    context.fillText(label, 72, y)
-    context.fillStyle = "#172a35"
-    context.font = strong ? "bold 26px Arial" : "24px Arial"
-    context.fillText(value, 350, y)
-    y += 42
-  }
-
-  rule()
-  labelValue("Kode reservasi", data.reference_code, true)
-  labelValue("Nama pemesan", data.customer_name)
-  labelValue("WhatsApp", data.customer_phone)
-  labelValue("Tanggal dibuat", new Date(data.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" }))
-  if (data.pickup_date) labelValue("Pengambilan", data.pickup_date)
-  if (data.return_date) labelValue("Pengembalian", data.return_date)
-  const stayLabel = data.pickup_date && data.return_date
-    ? formatRentalStayLabel(data.pickup_date, data.return_date)
-    : data.stay_duration_label ?? null
-  if (stayLabel) labelValue("Durasi estimasi", stayLabel, true)
-  rule()
-
-  context.fillStyle = "#172a35"
-  context.font = "bold 24px Arial"
-  context.fillText("RINCIAN PILIHAN", 72, y)
-  y += 48
-  for (const line of data.lines) {
-    context.fillStyle = "#172a35"
-    context.font = "bold 23px Arial"
-    const heading = (line.kind === "rental" ? "SEWA · " : "BELI · ") + line.name + (line.variant ? " · " + line.variant : "")
-    y = drawWrapped(context, heading, 72, y, 560, 30)
-    context.fillStyle = "#64748b"
-    context.font = "19px Arial"
-    const periods = line.kind === "rental" && data.pickup_date && data.return_date
-      ? calculateTariffPeriodsForDates(data.pickup_date, data.return_date, line.durationValue, line.durationUnit) ?? 1
-      : 1
-    const unit = line.kind === "rental" ? " · " + periods + " periode" : " · sekali beli"
-    const lineTotal = calculateRentalEstimate(line.quantity, line.price, periods)
-    context.fillText(line.quantity + " unit × " + formatRupiah(line.price) + unit, 72, y)
-    context.fillStyle = "#172a35"
-    context.font = "bold 22px Arial"
-    context.textAlign = "right"
-    context.fillText(formatRupiah(lineTotal), width - 72, y)
-    context.textAlign = "left"
-    y += 38
-    if (line.discountPercent > 0 && line.normalPrice > line.price) {
-      context.fillStyle = "#0f766e"
-      context.font = "18px Arial"
-      context.fillText("Promo " + line.discountPercent + "%", 72, y)
-      y += 26
-    }
-    context.strokeStyle = "#eef1f4"
-    context.lineWidth = 1
-    context.beginPath()
-    context.moveTo(72, y)
-    context.lineTo(width - 72, y)
-    context.stroke()
-    y += 28
-  }
-
-  context.fillStyle = "#64748b"
-  context.font = "20px Arial"
-  const estimatedTotal = data.lines.reduce((sum, line) => {
-    const periods = line.kind === "rental" && data.pickup_date && data.return_date
-      ? calculateTariffPeriodsForDates(data.pickup_date, data.return_date, line.durationValue, line.durationUnit) ?? 1
-      : 1
-    return sum + calculateRentalEstimate(line.quantity, line.price, periods)
-  }, 0)
-  context.fillText("Estimasi biaya booking", 72, y + 6)
-  context.fillStyle = "#172a35"
-  context.font = "bold 32px Arial"
-  context.textAlign = "right"
-  context.fillText(formatRupiah(estimatedTotal), width - 72, y + 10)
-  context.textAlign = "left"
-  y += 72
-  rule()
-
-  context.fillStyle = "#172a35"
-  context.font = "bold 24px Arial"
-  context.fillText("AKSES PORTAL CUSTOMER", 72, y)
-  y += 42
-
-  if (data.access_code) {
-    context.fillStyle = "#64748b"
-    context.font = "20px Arial"
-    context.fillText("Kode akses", 72, y)
-    context.fillStyle = "#172a35"
-    context.font = "bold 36px Arial"
-    context.fillText(data.access_code, 260, y + 6)
-    y += 66
-  } else {
-    context.fillStyle = "#b45309"
-    context.font = "20px Arial"
-    y = drawWrapped(context, "Akses portal belum tersedia. Hubungi admin dengan menyertakan kode booking ini.", 72, y, width - 144, 28) + 16
-  }
-
-  if (data.portal_link_url) {
-    context.fillStyle = "#64748b"
-    context.font = "19px Arial"
-    context.fillText("Tautan pribadi", 72, y)
-    y += 30
-    context.fillStyle = "#1d4ed8"
-    context.font = "18px Arial"
-    y = drawWrapped(context, data.portal_link_url, 72, y, width - 144, 26) + 16
-  }
-
-  if (qrDataUrl) {
-    const qr = await loadImage(qrDataUrl)
-    context.drawImage(qr, Math.round((width - 240) / 2), y + 12, 240, 240)
-    y += 285
-  }
-
-  context.fillStyle = "#172a35"
-  context.font = "bold 22px Arial"
-  context.textAlign = "center"
-  context.fillText("Simpan bukti ini dan jaga kerahasiaan akses Anda.", width / 2, y + 4)
-  context.fillStyle = "#64748b"
-  context.font = "18px Arial"
-  context.fillText("Tim Akasha Outdoor akan membantu proses konfirmasi booking Anda.", width / 2, y + 38)
-  context.textAlign = "left"
-  return canvas
-}
-
-function buildImagePdf(canvas: HTMLCanvasElement) {
-  const imageUrl = canvas.toDataURL("image/jpeg", 0.94)
-  const binary = window.atob(imageUrl.split(",")[1] ?? "")
-  const jpeg = new Uint8Array(binary.length)
-  for (let index = 0; index < binary.length; index += 1) jpeg[index] = binary.charCodeAt(index)
-
-  const pageWidth = Math.round(canvas.width * 0.72)
-  const pageHeight = Math.round(canvas.height * 0.72)
-  const commands = "q\n" + pageWidth + " 0 0 " + pageHeight + " 0 0 cm\n/Im0 Do\nQ\n"
-  const encoder = new TextEncoder()
-  const chunks: Uint8Array[] = []
-  const offsets = new Array<number>(6).fill(0)
-  let length = 0
-  const add = (value: string | Uint8Array) => {
-    const bytes = typeof value === "string" ? encoder.encode(value) : value
-    chunks.push(bytes)
-    length += bytes.length
-  }
-  const object = (number: number, body: string) => {
-    offsets[number] = length
-    add(number + " 0 obj\n" + body + "\nendobj\n")
-  }
-
-  add("%PDF-1.4\n")
-  object(1, "<< /Type /Catalog /Pages 2 0 R >>")
-  object(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
-  object(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + pageWidth + " " + pageHeight + "] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>")
-
-  offsets[4] = length
-  add("4 0 obj\n<< /Type /XObject /Subtype /Image /Width " + canvas.width + " /Height " + canvas.height + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + jpeg.length + " >>\nstream\n")
-  add(jpeg)
-  add("\nendstream\nendobj\n")
-  offsets[5] = length
-  add("5 0 obj\n<< /Length " + encoder.encode(commands).length + " >>\nstream\n" + commands + "endstream\nendobj\n")
-  const xrefOffset = length
-  add("xref\n0 6\n0000000000 65535 f \n")
-  for (let index = 1; index <= 5; index += 1) add(String(offsets[index]).padStart(10, "0") + " 00000 n \n")
-  add("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + xrefOffset + "\n%%EOF")
-  const output = new Uint8Array(length)
-  let cursor = 0
-  for (const chunk of chunks) {
-    output.set(chunk, cursor)
-    cursor += chunk.length
-  }
-  return new Blob([output], { type: "application/pdf" })
-}
-
-function saveBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement("a")
-  anchor.href = url
-  anchor.download = filename
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
 
 export default function BookingSuccessClient() {
   const [data, setData] = useState<BookingReceipt | null>(null)
@@ -330,7 +39,7 @@ export default function BookingSuccessClient() {
     let active = true
     if (!data) return
     const target = data.portal_link_url || (window.location.origin + "/booking/portal")
-    void QRCode.toDataURL(target, { errorCorrectionLevel: "M", margin: 1, width: 300, color: { dark: "#172a35", light: "#ffffff" } })
+    void createBookingReceiptQr(target)
       .then((url) => { if (active) setQrDataUrl(url) })
       .catch(() => { if (active) setError("Kode QR belum tersedia. Anda tetap dapat membuka portal melalui tautan atau kode akses di bawah.") })
     return () => { active = false }
@@ -346,17 +55,11 @@ export default function BookingSuccessClient() {
   }, 0) : 0, [data])
 
   async function exportReceipt(kind: "png" | "pdf") {
-    if (!data || exporting) return
+    if (!data || !qrDataUrl || exporting) return
     setExporting(kind)
     setError("")
     try {
-      const canvas = await createReceiptCanvas(data, qrDataUrl)
-      if (kind === "png") {
-        const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Gambar nota tidak dapat dibuat.")), "image/png"))
-        saveBlob(blob, filename + ".png")
-      } else {
-        saveBlob(buildImagePdf(canvas), filename + ".pdf")
-      }
+      await exportBookingReceipt(data, qrDataUrl, kind, filename)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Nota belum dapat diunduh.")
     } finally {
@@ -395,6 +98,13 @@ export default function BookingSuccessClient() {
   return (
     <section className="mx-auto max-w-3xl px-4 py-7 sm:px-6 sm:py-10">
       <header className="rounded-3xl border border-emerald-500/25 bg-emerald-500/[0.055] p-5 sm:p-7">
+        <div className="mb-4 flex items-center gap-2 border-b border-emerald-500/15 pb-3">
+          <Image src="/logo.png" alt="Akasha Outdoor" width={28} height={28} className="size-7 shrink-0 object-contain" />
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.08em] text-foreground">AKASHA <span className="text-primary">SMART</span> BOOKING</p>
+            <p className="text-[9px] font-medium tracking-[0.12em] text-muted-foreground">AKASHA OUTDOOR</p>
+          </div>
+        </div>
         <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300"><span className="grid size-9 place-items-center rounded-full bg-emerald-500/10"><Check className="size-5" /></span><span className="text-xs font-semibold">Booking berhasil dikirim</span></div>
         <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">Terima kasih, {data.customer_name}.</h1>
         <p className="mt-1 text-sm text-muted-foreground">Simpan bukti dan akses portal booking Anda.</p>

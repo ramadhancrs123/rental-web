@@ -330,3 +330,45 @@ html:not(.dark) .hero-celestial--sun { opacity: .92; transform: translateY(0) sc
 @media (prefers-reduced-motion: reduce) {
   .hiking-map-loading-dot { animation: none; }
 }
+
+
+/* Customer portal palette: clean white/orange in light mode, near-black/orange in dark mode. */
+.portal-customer-theme {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.22 0.015 45);
+  --card: oklch(0.995 0.002 80);
+  --card-foreground: oklch(0.22 0.015 45);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.015 45);
+  --primary: oklch(0.56 0.18 48);
+  --primary-foreground: oklch(0.99 0.005 80);
+  --secondary: oklch(0.96 0.008 70);
+  --secondary-foreground: oklch(0.28 0.015 45);
+  --muted: oklch(0.96 0.006 75);
+  --muted-foreground: oklch(0.48 0.015 55);
+  --accent: oklch(0.95 0.025 65);
+  --accent-foreground: oklch(0.28 0.035 45);
+  --border: oklch(0.91 0.008 65);
+  --input: oklch(0.91 0.008 65);
+  --ring: oklch(0.56 0.18 48);
+}
+
+.dark .portal-customer-theme {
+  --background: oklch(0.13 0.006 50);
+  --foreground: oklch(0.94 0.006 80);
+  --card: oklch(0.175 0.006 50);
+  --card-foreground: oklch(0.94 0.006 80);
+  --popover: oklch(0.18 0.006 50);
+  --popover-foreground: oklch(0.94 0.006 80);
+  --primary: oklch(0.76 0.16 54);
+  --primary-foreground: oklch(0.16 0.012 48);
+  --secondary: oklch(0.23 0.008 50);
+  --secondary-foreground: oklch(0.9 0.008 80);
+  --muted: oklch(0.22 0.006 50);
+  --muted-foreground: oklch(0.67 0.008 75);
+  --accent: oklch(0.27 0.025 48);
+  --accent-foreground: oklch(0.93 0.008 80);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.76 0.16 54);
+}
