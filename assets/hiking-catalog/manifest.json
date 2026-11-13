@@ -11,7 +11,7 @@
     {
       "id": "hiking:jawa-barat:catalog",
       "path": "provinces/jawa-barat/catalog.json",
-      "status": "large_research_baseline_complete_review_required",
+      "status": "research_expansion_in_progress_review_required",
       "publishable": false,
       "mountains": 20,
       "local_gpx_files": 19,
@@ -19,7 +19,7 @@
       "waypoints": 315,
       "schema": "schemas/province-catalog.schema.json",
       "source_registry": "sources.json",
-      "sources": 40,
+      "sources": 43,
       "track_access_matches": 44,
       "duplicate_track_records": 6
     },

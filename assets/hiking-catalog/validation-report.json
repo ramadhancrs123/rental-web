@@ -1,7 +1,7 @@
 {
   "dataset_id": "hiking:jawa-barat:catalog",
   "validated_at": "2026-10-30",
-  "validation_status": "passed",
+  "validation_status": "partial_after_research_delta",
   "schema_status": "province-catalog draft-2020-12 schema keywords validated by local validator",
   "checks": {
     "all_json_files_parse": "passed",
@@ -34,11 +34,16 @@
     "raw_track_waypoint_integrity": "passed",
     "source_track_access_match_refs": "passed",
     "exact_duplicate_track_detection": "passed",
-    "no_elevation_or_derived_metrics_added": "passed"
+    "no_elevation_or_derived_metrics_added": "passed",
+    "research_delta_json_parse": "passed",
+    "research_delta_source_reference_integrity": "passed",
+    "research_delta_git_diff_check": "passed",
+    "research_delta_json_schema_revalidation": "not_run_validator_unavailable",
+    "research_delta_human_source_review": "pending"
   },
   "counts": {
     "mountains": 20,
-    "sources": 40,
+    "sources": 43,
     "local_gpx_assets": 19,
     "source_tracks": 120,
     "trackpoints": 57473,
@@ -322,5 +327,24 @@
     "checkpoint_candidates": 315,
     "matches_by_mountain_name_and_6dp_coordinates": 315,
     "hiking_operators": 0
+  },
+  "additional_research_updates": {
+    "S41": "Ajisaka official development milestone added; not treated as open notice",
+    "S42": "Burangrang Legok Haji reported reopening added with conflict/authority caveat",
+    "S43": "TNGHS live portal observation added with dynamic-source caveat"
+  },
+  "research_delta": {
+    "date": "2026-10-30",
+    "scope": [
+      "Salak Ajisaka official development milestone and official portal closure/GIS landmarks",
+      "Burangrang route access-area details and reported Legok Haji reopening with explicit authority caveat"
+    ],
+    "not_completed": [
+      "route-by-route primary manager verification for remaining mountains",
+      "basecamp/operator/contact verification for all candidates",
+      "human review of the added schema fields",
+      "Supabase runtime data insertion"
+    ],
+    "publication_decision": "not_publishable"
   }
 }

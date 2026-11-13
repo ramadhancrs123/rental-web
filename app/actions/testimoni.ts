@@ -12,7 +12,7 @@ export async function submitPublicTestimonial(
   formData: FormData,
 ): Promise<PublicTestimonialFormState> {
   if (String(formData.get("website") ?? "").trim()) {
-    return { status: "success", message: "Terima kasih. Ceritamu sudah kami terima untuk ditinjau." }
+    return { status: "success", message: "Terima kasih. Cerita Anda sudah kami terima untuk ditinjau." }
   }
 
   const namaTampilan = String(formData.get("nama_tampilan") ?? "").trim()
@@ -24,7 +24,7 @@ export async function submitPublicTestimonial(
     return { status: "error", field: "nama_tampilan", message: "Nama tampilan harus terdiri dari 2–80 karakter." }
   }
   if (konteks.length > 120) {
-    return { status: "error", field: "general", message: "Konteks perjalanan maksimal 120 karakter." }
+    return { status: "error", field: "general", message: "Keterangan perjalanan maksimal 120 karakter." }
   }
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
     return { status: "error", field: "rating", message: "Pilih rating dari 1 sampai 5." }
@@ -59,6 +59,6 @@ export async function submitPublicTestimonial(
 
   return {
     status: "success",
-    message: "Terima kasih! Ceritamu sudah masuk antrean verifikasi admin dan belum ditampilkan ke publik.",
+    message: "Terima kasih! Cerita Anda sudah kami terima. Tim Akasha akan meninjaunya sebelum ditampilkan.",
   }
 }

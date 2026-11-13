@@ -9,46 +9,46 @@ import {
 
 const FAQS = [
   {
-    q: "Bagaimana cara memesan perlengkapan?",
-    a: "Isi form booking di halaman Booking: pilih tanggal sewa, atur jumlah perlengkapan, lalu kirim. Reservasi langsung masuk sistem kami dengan nomor reservasi dan QR code.",
+    q: "Bagaimana cara menyewa perlengkapan di Akasha?",
+    a: "Buka Akasha Smart Booking, pilih perlengkapan atau paket yang Anda butuhkan, lalu atur jumlah dan tanggal pengambilan serta pengembalian. Setelah data dilengkapi, kirim pengajuan. Tim Akasha akan membantu memastikan ketersediaan dan detail penyewaan.",
   },
   {
-    q: "Apakah harga yang tampil adalah harga akhir?",
-    a: "Harga di katalog ditampilkan untuk periode 2 hari 1 malam sebagai estimasi. Nilai dan ketersediaan akhir akan dikonfirmasi pengelola setelah detail booking diperiksa.",
+    q: "Bisakah saya menyewa beberapa barang sekaligus?",
+    a: "Bisa. Anda dapat menggabungkan beberapa jenis perlengkapan dan paket dalam satu pengajuan, lalu meninjau kembali pilihan serta jumlahnya sebelum dikirim.",
   },
   {
-    q: "Bagaimana aturan toleransi pengembalian?",
-    a: "Akasha memberikan toleransi hingga 10 jam sejak jadwal pengembalian. Setelah periode toleransi berakhir, ketentuan denda keterlambatan berlaku sesuai aturan rental yang dikonfirmasi admin.",
+    q: "Kapan booking saya dinyatakan terkonfirmasi?",
+    a: "Pengajuan belum otomatis menjadi booking terkonfirmasi. Tim Akasha akan memeriksa ketersediaan barang, jadwal, dan rincian sewa terlebih dahulu. Konfirmasi selanjutnya dapat Anda pantau melalui portal pribadi dan komunikasi dengan Tim Akasha.",
   },
   {
-    q: "Berapa lama proses konfirmasi booking?",
-    a: "Admin memeriksa ketersediaan stok dan mengabari kamu lewat WhatsApp, biasanya dalam hitungan jam pada jam operasional. Kamu juga bisa langsung tanya admin lewat tombol WhatsApp setelah booking dikirim.",
+    q: "Bagaimana cara melihat status booking?",
+    a: "Setelah pengajuan dikirim, simpan tautan pribadi atau kode akses yang tercantum pada bukti booking. Anda juga dapat memindai QR untuk membuka portal pribadi dan melihat perkembangan penyewaan.",
   },
   {
-    q: "Untuk apa QR code reservasi?",
-    a: "Setelah booking dikirim kamu mendapat QR code. Tunjukkan QR ini kepada admin saat pengambilan barang — proses serah terima jadi cepat tanpa perlu hafal nomor reservasi.",
+    q: "Bagaimana jika ingin mengubah atau membatalkan booking?",
+    a: "Ajukan permintaan perubahan barang, jumlah, jadwal, atau pembatalan melalui portal booking Anda. Tim Akasha akan meninjau permintaan tersebut dan menginformasikan hasilnya. Perubahan atau pembatalan berlaku setelah dikonfirmasi.",
   },
   {
-    q: "Bisa membatalkan atau mengubah pesanan?",
-    a: "Bisa. Hubungi admin via WhatsApp dengan menyebut nomor reservasi. Selama barang belum diambil, reservasi dapat dibatalkan atau disesuaikan ketersediaannya.",
+    q: "Bagaimana ketentuan waktu pengembalian?",
+    a: "Akasha memberikan toleransi pengembalian hingga 10 jam setelah jadwal yang disepakati. Ketentuan keterlambatan setelah masa toleransi mengikuti aturan sewa yang berlaku dan dapat dikonfirmasi kepada Tim Akasha.",
   },
   {
-    q: "Bagaimana kondisi dan kebersihan perlengkapan?",
-    a: "Setiap unit diperiksa ketat sebelum dan sesudah disewa. Perlengkapan yang diambil dan dikembalikan melewati pemeriksaan kondisi agar kamu selalu mendapat unit yang siap pakai.",
+    q: "Bagaimana kondisi perlengkapan sebelum diserahkan?",
+    a: "Kondisi perlengkapan diperiksa sebelum serah terima. Bila ada hal yang ingin Anda pastikan mengenai barang pilihan, silakan sampaikan kepada Tim Akasha sebelum penyewaan dikonfirmasi.",
   },
   {
-    q: "Apakah bisa sewa untuk grup atau kegiatan komunitas?",
-    a: "Tentu. Untuk kebutuhan jumlah besar atau durasi panjang, chat admin via WhatsApp agar kami bisa siapkan paket dan penawaran yang paling pas.",
+    q: "Apakah Akasha melayani kebutuhan rombongan atau komunitas?",
+    a: "Untuk kebutuhan beberapa orang, komunitas, atau jumlah perlengkapan yang lebih banyak, hubungi Tim Akasha. Kami akan membantu membahas pilihan barang, ketersediaan, dan kebutuhan perjalanan Anda.",
   },
 ]
 
 export default function FaqSection() {
   return (
-    <div className="mx-auto max-w-3xl rounded-3xl border border-border/60 bg-card p-6 shadow-xs sm:p-10">
+    <div className="mx-auto max-w-3xl rounded-3xl border border-border/60 bg-card p-5 shadow-xs sm:p-8 lg:p-9">
       <Accordion className="gap-0">
         {FAQS.map((item, i) => (
-          <AccordionItem key={i} value={`faq-${i}`} className="border-border/50 px-1">
-            <AccordionTrigger className="py-5 text-left text-base font-medium hover:no-underline">
+          <AccordionItem key={i} value={"faq-" + i} className="border-border/50 px-1">
+            <AccordionTrigger className="py-5 text-left text-sm font-semibold hover:no-underline sm:text-base">
               {item.q}
             </AccordionTrigger>
             <AccordionContent className="pb-5 text-sm leading-relaxed text-muted-foreground">

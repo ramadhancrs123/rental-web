@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils"
 export const metadata: Metadata = {
   title: "Akasha Outdoor Rent | Rental Perlengkapan Outdoor Garut",
   description:
-    "Sewa tenda dan perlengkapan outdoor di Garut, Jawa Barat. Booking online, konfirmasi WhatsApp, dan toleransi pengembalian hingga 10 jam sesuai ketentuan rental.",
-  keywords: "sewa tenda, rental outdoor, sewa alat camping, tracking pole, akasha outdoor rent",
+    "Rental perlengkapan camping dan pendakian di Garut. Jelajahi pilihan sewa satuan dan paket camping, ajukan penyewaan melalui Akasha Smart Booking, lalu pantau booking di portal pribadi.",
+  keywords: "rental perlengkapan camping Garut, sewa alat camping Garut, sewa tenda Garut, paket camping Garut, Akasha Outdoor Rent",
   applicationName: "Akasha Smart Booking",
   appleWebApp: {
     capable: true,
@@ -26,9 +26,9 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
-    title: "Akasha Outdoor Rent | Petualanganmu Dimulai dari Sini",
+    title: "Akasha Outdoor Rent | Rental Outdoor & Smart Booking",
     description:
-      "Temukan perlengkapan outdoor, pilih tanggal sewa, ajukan booking online, dan kenali destinasi pegunungan Garut untuk perjalanan berikutnya.",
+      "Temukan perlengkapan camping dan pendakian di Garut. Pilih perlengkapan sewa atau paket camping, ajukan penyewaan, dan pantau booking melalui portal pribadi Akasha.",
     type: "website",
     locale: "id_ID",
   },
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#e87516" },
-    { media: "(prefers-color-scheme: dark)", color: "#14283a" },
+    { media: "(prefers-color-scheme: dark)", color: "#111722" },
   ],
   colorScheme: "light dark",
 }

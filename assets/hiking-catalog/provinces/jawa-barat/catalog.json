@@ -255,19 +255,20 @@
         "regency": "Bandung Barat"
       },
       "research_status": "researched_route_reference",
-      "summary": "Perhutani memuat empat nama jalur Burangrang: Pangheotan, Tanjakan Mentari, Legok Haji dan Komando. Arsip GPX lokal memiliki satu track dengan waypoint START LEGOK HAJI. Ini mendukung keterkaitan geografis awal dengan Legok Haji, tetapi bukan bukti bahwa rekaman tersebut merupakan centerline resmi atau bahwa akses sedang dibuka.",
+      "summary": "Perhutani memuat empat nama jalur Burangrang: Pangheotan, Tanjakan Mentari, Legok Haji dan Komando. Arsip GPX lokal memiliki satu track dengan waypoint START LEGOK HAJI. Ini mendukung keterkaitan geografis awal dengan Legok Haji, tetapi bukan bukti bahwa rekaman tersebut merupakan centerline resmi atau bahwa akses sedang dibuka. Laporan 30 September 2026 menyebut Legok Haji dibuka kembali sejak 28 September berdasarkan informasi akun pengelola; karena pengumuman primer tertulis belum diperoleh dan instruksi provinsi masih menjadi pembatas, status operasional katalog tetap belum dinyatakan terbuka.",
       "documented_routes": [
         {
           "name": "Pangheotan",
-          "access_area": "Cikalong Wetan, Purwakarta",
+          "access_area": "Basecamp Cikalong Wetan, Kabupaten Purwakarta",
           "status": "documented_in_2024_route_guide",
           "source_ids": [
             "S20"
-          ]
+          ],
+          "basecamp_reference_status": "route-guide_location_not_operator_verified"
         },
         {
           "name": "Tanjakan Mentari",
-          "access_area": "Pasirlangu, Cisarua, Bandung Barat",
+          "access_area": "Kelurahan/Desa Pasirlangu, Kecamatan Cisarua, Kabupaten Bandung Barat",
           "checkpoint_labels": [
             "Pos 2",
             "Pos 3",
@@ -276,11 +277,12 @@
           "status": "documented_in_2024_route_guide",
           "source_ids": [
             "S20"
-          ]
+          ],
+          "basecamp_reference_status": "route-guide_location_not_operator_verified"
         },
         {
           "name": "Legok Haji",
-          "access_area": "Pasirlangu, Cisarua, Bandung Barat",
+          "access_area": "Desa Nyalindung / area Pasirlangu, Kecamatan Cisarua, Kabupaten Bandung Barat",
           "checkpoint_labels": [
             "Pos 1",
             "Pos 2",
@@ -290,7 +292,16 @@
           "status": "documented_in_2024_route_guide",
           "source_ids": [
             "S20"
-          ]
+          ],
+          "reported_reopening": {
+            "effective_date": "2026-09-28",
+            "reported_on": "2026-09-30",
+            "status": "reported_reopened_by_secondary_media_citing_manager_social_account",
+            "source_ids": [
+              "S42"
+            ],
+            "verification": "no signed primary notice retrieved; provincial instruction still applies unless competent authority grants a documented exception"
+          }
         },
         {
           "name": "Komando",
@@ -309,6 +320,24 @@
             "S05",
             "S20"
           ]
+        },
+        {
+          "name": "Basecamp Pangheotan",
+          "type": "route-guide reported registration/start area",
+          "location_reference": "Cikalong Wetan, Kabupaten Purwakarta",
+          "operator_and_exact_pin_status": "not_verified",
+          "source_ids": [
+            "S20"
+          ]
+        },
+        {
+          "name": "Basecamp Tanjakan Mentari",
+          "type": "route-guide reported start area",
+          "location_reference": "Pasirlangu, Kecamatan Cisarua, Kabupaten Bandung Barat",
+          "operator_and_exact_pin_status": "not_verified",
+          "source_ids": [
+            "S20"
+          ]
         }
       ],
       "official_access_points": [],
@@ -325,7 +354,16 @@
         "revocation_or_exception_status": "not_found",
         "publication_rule": "Do not assert a West Java route is open without a route-specific written clearance or a verified authority/land-manager notice issued after this instruction.",
         "route_specific_status": "not_verified_independently",
-        "no_open_claim": true
+        "no_open_claim": true,
+        "reported_route_specific_update": {
+          "route": "Legok Haji",
+          "reported_effective_date": "2026-09-28",
+          "reported_by": "Mounture.com citing manager Instagram @gunungburangrang2050mdpl",
+          "source_ids": [
+            "S42"
+          ],
+          "status": "secondary_report_only_pending_primary_notice_and_reconciliation_with_provincial_instruction"
+        }
       },
       "source_gpx": {
         "path": "gpx/jawa-barat/burangrang-gpx.gpx",
@@ -8592,7 +8630,7 @@
         "regency": "Bogor"
       },
       "research_status": "official_park_gate_and_closure_reference",
-      "summary": "Gunung Salak berada di Taman Nasional Gunung Halimun Salak. Portal resmi TNGHS memetakan pintu pendakian Cimalati, Cidahu, Ajisaka dan Pasir Reungit. Balai TNGHS mengumumkan penutupan sementara pendakian Salak pada keempat akses tersebut dan tracking Kawah Ratu mulai 2 September 2026 sampai batas waktu yang belum ditentukan.",
+      "summary": "Gunung Salak berada di Taman Nasional Gunung Halimun Salak. Portal resmi TNGHS memetakan pintu pendakian Cimalati, Cidahu, Ajisaka dan Pasir Reungit. Balai TNGHS mengumumkan penutupan sementara pendakian Salak pada keempat akses tersebut dan tracking Kawah Ratu mulai 2 September 2026 sampai batas waktu yang belum ditentukan. Pada 23 Juni 2026 Kemenhut juga mendokumentasikan deklarasi pengembangan Jalur Ajisaka berstandar nasional di RPTNW Gunung Salak I; siaran pers menyebut audit dan penataan sebagai tindak lanjut, bukan pengumuman pembukaan.",
       "documented_routes": [
         {
           "name": "Cimalati",
@@ -8609,8 +8647,12 @@
         {
           "name": "Ajisaka",
           "source_ids": [
-            "S21"
-          ]
+            "S21",
+            "S41",
+            "S43"
+          ],
+          "route_development_note": "Kemenhut documented a multi-stakeholder declaration to develop Ajisaka to national standard at Pintu Pendakian Ajisaka, RPTNW Gunung Salak I, on 23 June 2026. The release describes planned audit/SOP and infrastructure improvements; it is not an opening notice.",
+          "development_status": "official_development_program_declared_audit_and_improvement_planned"
         },
         {
           "name": "Pasir Reungit",
@@ -8619,7 +8661,7 @@
           ]
         }
       ],
-      "checkpoint_reference": null,
+      "checkpoint_reference": "Portal GIS TNGHS lists Puncak Salak I (-6.71393, 106.73358), Puncak Salak II (-6.70140, 106.72805), Kawah Ratu (-6.70989, 106.71033), plus official gate coordinates. These are official named geographic features, not a verified ordered checkpoint sequence for any route. Keep them separate from the 38 raw ASTACALA waypoints and do not associate them to archived tracks without geometry review.",
       "basecamp_candidates": [],
       "official_access_points": [
         {
@@ -8668,7 +8710,38 @@
         ],
         "source_ids": [
           "S21"
-        ]
+        ],
+        "latest_portal_observation": {
+          "observed_at": "2026-10-30",
+          "portal_reports": "Puncak Salak I dan II ditandai ditutup; portal menampilkan pintu Cimalati, Cidahu, Pasir Reungit dan Ajisaka sebagai akses terdaftar.",
+          "source_ids": [
+            "S43"
+          ],
+          "note": "Dynamic portal observation. The catalog retains the explicit closure notice and does not infer that listed gates are open."
+        },
+        "official_portal_notice": {
+          "notice_title": "Pengumuman Penutupan Sementara Pendakian Gunung Salak dan Tracking Kawah Ratu",
+          "effective_from": "2026-09-02T06:00:00+07:00",
+          "end": "until further notice",
+          "closed_hiking_gates": [
+            "Cidahu",
+            "Pasir Reungit",
+            "Cimalati",
+            "Ajisaka"
+          ],
+          "closed_crater_tracking_gates": [
+            "Cidahu",
+            "Pasir Reungit"
+          ],
+          "portal_status_panel": {
+            "puncak_salak_i": "closed",
+            "puncak_salak_ii": "closed"
+          },
+          "source_ids": [
+            "S43"
+          ],
+          "confidence": "official_balai_notice_reproduced_on_official_portal"
+        }
       },
       "source_gpx": {
         "path": "gpx/jawa-barat/salak-gpx.gpx",
@@ -9587,6 +9660,44 @@
           ],
           "method": "minimum Haversine distance from waypoint coordinate to any source GPX trackpoint",
           "interpretation": "Proximity only. It does not establish a legal/current trail, official route identity, basecamp operator, or access permission."
+        }
+      ],
+      "official_landmarks": [
+        {
+          "name": "Puncak Salak I",
+          "feature_type": "summit",
+          "location": {
+            "latitude": -6.71393,
+            "longitude": 106.73358
+          },
+          "source_ids": [
+            "S43"
+          ],
+          "route_association": null
+        },
+        {
+          "name": "Puncak Salak II",
+          "feature_type": "summit",
+          "location": {
+            "latitude": -6.7014,
+            "longitude": 106.72805
+          },
+          "source_ids": [
+            "S43"
+          ],
+          "route_association": null
+        },
+        {
+          "name": "Kawah Ratu",
+          "feature_type": "active_volcanic_crater",
+          "location": {
+            "latitude": -6.70989,
+            "longitude": 106.71033
+          },
+          "source_ids": [
+            "S43"
+          ],
+          "route_association": null
         }
       ]
     },

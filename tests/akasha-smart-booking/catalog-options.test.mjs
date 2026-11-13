@@ -2,6 +2,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import {
   getSmartBookingCatalogOptions,
+  hasSmartBookingQuantityChanges,
   toSmartBookingLine,
   smartBookingOptionLabel,
 } from "../../lib/akasha-smart-booking/catalog-options.ts"
@@ -22,7 +23,7 @@ function fixtureCatalog() {
       kategori_nama: "Shelter",
       deskripsi: null,
       ringkasan_publik: null,
-      imageUrl: null,
+      imageUrl: "https://cdn.example.test/tenda-product.jpg",
       variants: [{
         barang_id: productId,
         varian_barang_id: variantId,
@@ -37,6 +38,7 @@ function fixtureCatalog() {
         priceDurationUnit: "hari",
         currency_code: "IDR",
         inventory_mode: "serialized",
+        imageUrl: "https://cdn.example.test/tenda-4-orang.jpg",
       }],
       directRentalOption: {
         key: "product:" + productId,
@@ -100,6 +102,7 @@ function fixtureCatalog() {
       discountPercent: 0,
       currency_code: "IDR",
       inventory_mode: "quantity",
+      imageUrl: "https://cdn.example.test/botol-varian.jpg",
     }],
   }
 }
@@ -116,6 +119,28 @@ test("catalog options keep rental, package, and sale domains distinct", () => {
       ["sale-variant:" + saleVariantId, "sale", "variant"],
     ],
   )
+})
+
+test("variant options prefer their own image over the parent product image", () => {
+  const options = getSmartBookingCatalogOptions(fixtureCatalog())
+  const product = options.find((item) => item.key === "product:" + productId)
+  const rentalVariant = options.find((item) => item.key === "variant:" + variantId)
+  const saleVariant = options.find((item) => item.key === "sale-variant:" + saleVariantId)
+
+  assert.equal(product?.imageUrl, "https://cdn.example.test/tenda-product.jpg")
+  assert.equal(rentalVariant?.imageUrl, "https://cdn.example.test/tenda-4-orang.jpg")
+  assert.equal(saleVariant?.imageUrl, "https://cdn.example.test/botol-varian.jpg")
+})
+
+test("quantity draft comparison only activates for a real difference", () => {
+  const original = { "variant:one": 2, "product:two": 1 }
+
+  assert.equal(hasSmartBookingQuantityChanges(original, { ...original }), false)
+  assert.equal(hasSmartBookingQuantityChanges(original, { "variant:one": 3, "product:two": 1 }), true)
+  assert.equal(hasSmartBookingQuantityChanges(original, { "variant:one": 2 }), true)
+  assert.equal(hasSmartBookingQuantityChanges(original, { ...original, "variant:new": 1 }), true)
+  assert.equal(hasSmartBookingQuantityChanges(original, { "variant:one": 1, "product:two": 1 }), true)
+  assert.equal(hasSmartBookingQuantityChanges(original, { "variant:one": 2, "product:two": 1 }), false)
 })
 
 test("rental product serializes one product target", () => {

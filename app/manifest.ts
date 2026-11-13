@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "Akasha Smart Booking — Akasha Outdoor",
     short_name: "Akasha",
-    description: "Pilih perlengkapan outdoor, ajukan booking, dan pantau status rental dalam satu aplikasi.",
+    description: "Jelajahi perlengkapan camping dan pendakian, ajukan penyewaan, dan pantau booking melalui portal pribadi Akasha.",
     start_url: "/",
     scope: "/",
     display: "standalone",

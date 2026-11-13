@@ -5,9 +5,9 @@ import HikingMap from "@/components/hiking-map"
 import { type HikingMountain, requestHikingCatalog } from "@/lib/hiking"
 
 const DESTINATION_FEATURES = [
-  { icon: MapPinned, label: "Peta persebaran gunung Jawa Barat" },
-  { icon: CloudSun, label: "Prakiraan wilayah BMKG" },
-  { icon: Route, label: "Referensi akses dan jalur terpublikasi" },
+  { icon: MapPinned, label: "Jelajahi gunung di Jawa Barat" },
+  { icon: CloudSun, label: "Referensi prakiraan cuaca" },
+  { icon: Route, label: "Informasi jalur pendakian" },
 ]
 
 export default async function DestinationsHighlight() {
@@ -26,7 +26,7 @@ export default async function DestinationsHighlight() {
           <div>
             <span className="section-eyebrow"><Compass className="size-3.5" /> Jelajahi destinasi</span>
             <h2 className="mt-4 max-w-xl text-3xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-4xl">Temukan gunung <span className="font-display font-normal italic text-primary">berikutnya.</span></h2>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7">Mulai dari peta persebaran, lalu buka detail destinasi untuk melihat lokasi, jalur yang dipublikasikan, dan referensi cuaca.</p>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7">Jelajahi lokasi gunung, kenali jalur pendakian, dan lihat referensi cuaca untuk membantu merencanakan perjalanan Anda.</p>
             <Link href="/destinasi" className="group mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
               Jelajahi semua destinasi <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
@@ -37,10 +37,9 @@ export default async function DestinationsHighlight() {
         </ScrollReveal>
 
         <ScrollReveal delay={0.08}>
-          <HikingMap mountains={mountains} title="Peta persebaran destinasi pendakian Jawa Barat" frameClassName="h-[360px] sm:h-[420px] lg:h-[460px]" caption="Peta Maptoolkit Outdoor. Marker hanya berasal dari gunung dengan koordinat yang sudah dipublikasikan dalam database." />
+          <HikingMap mountains={mountains} title="Peta persebaran destinasi pendakian Jawa Barat" frameClassName="h-[360px] sm:h-[420px] lg:h-[460px]" caption="Pilih penanda pada peta untuk melihat informasi setiap destinasi." />
         </ScrollReveal>
       </div>
     </section>
   )
 }
-

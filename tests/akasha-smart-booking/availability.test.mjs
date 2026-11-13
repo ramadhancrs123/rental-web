@@ -8,12 +8,23 @@ import {
 
 test("ready states disclose a current projection, not a guarantee", () => {
   assert.deepEqual(getAvailabilityIndicator("ready_now"), {
-    label: "Terlihat siap saat diperiksa",
+    label: "Unit tersedia untuk disewa",
     tone: "success",
   })
   assert.deepEqual(getAvailabilityIndicator("all_components_ready_now"), {
-    label: "Komponen terlihat siap",
+    label: "Semua barang dalam paket tersedia",
     tone: "success",
+  })
+})
+
+test("available stock labels use clear customer-friendly inventory language", () => {
+  assert.deepEqual(getAvailabilityIndicator("available_now"), {
+    label: "Stok barang tersedia",
+    tone: "success",
+  })
+  assert.deepEqual(getAvailabilityIndicator("other_variants_available"), {
+    label: "Varian lain tersedia",
+    tone: "warning",
   })
 })
 

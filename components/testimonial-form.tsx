@@ -14,8 +14,8 @@ export default function TestimonialForm() {
       <div className="flex items-start gap-3 border-b border-border/60 bg-secondary/35 p-5 sm:p-6">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><MessageSquareQuote className="size-5" /></span>
         <div>
-          <h3 className="text-base font-semibold">Ceritakan pengalamanmu</h3>
-          <p className="mt-1 text-sm leading-5 text-muted-foreground">Ulasanmu akan diperiksa admin terlebih dahulu sebelum dipublikasikan.</p>
+          <h3 className="text-base font-semibold">Ceritakan pengalaman Anda</h3>
+          <p className="mt-1 text-sm leading-5 text-muted-foreground">Tim Akasha akan membaca cerita Anda sebelum ditampilkan kepada pengunjung lain.</p>
         </div>
       </div>
 
@@ -28,7 +28,7 @@ export default function TestimonialForm() {
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-1.5 text-sm font-medium" htmlFor="testimonial-name">
             Nama tampilan
-            <input id="testimonial-name" name="nama_tampilan" required minLength={2} maxLength={80} autoComplete="nickname" placeholder="Nama yang boleh ditampilkan" className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30" />
+            <input id="testimonial-name" name="nama_tampilan" required minLength={2} maxLength={80} autoComplete="nickname" placeholder="Nama yang ingin ditampilkan" className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30" />
           </label>
           <label className="grid gap-1.5 text-sm font-medium" htmlFor="testimonial-context">
             Perjalanan (opsional)
@@ -50,7 +50,7 @@ export default function TestimonialForm() {
         <label className="grid gap-1.5 text-sm font-medium" htmlFor="testimonial-story">
           Cerita pengalaman
           <textarea id="testimonial-story" name="isi" required minLength={12} maxLength={1200} rows={4} placeholder="Apa yang paling membantu selama menyewa perlengkapan di Akasha?" className="resize-y rounded-xl border border-input bg-background px-3 py-2.5 text-sm leading-6 font-normal outline-none transition focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30" />
-          <span className="text-xs font-normal text-muted-foreground">12–1.200 karakter. Jangan sertakan nomor identitas atau informasi sensitif.</span>
+          <span className="text-xs font-normal text-muted-foreground">12–1.200 karakter. Jangan sertakan nomor identitas atau informasi pribadi yang sensitif.</span>
         </label>
 
         {state && (
@@ -61,9 +61,9 @@ export default function TestimonialForm() {
         )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="max-w-md text-xs leading-5 text-muted-foreground">Dengan mengirim, kamu mengizinkan Akasha meninjau cerita ini untuk kemungkinan publikasi. Nama tampilan yang kamu tulis dapat ditampilkan jika disetujui.</p>
+          <p className="max-w-md text-xs leading-5 text-muted-foreground">Dengan mengirim cerita, Anda mengizinkan Tim Akasha meninjaunya untuk kemungkinan publikasi. Nama tampilan dapat ditampilkan setelah cerita disetujui.</p>
           <button type="submit" disabled={pending} className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:opacity-90 disabled:pointer-events-none disabled:opacity-60">
-            <Send className="size-4" /> {pending ? "Mengirim…" : "Kirim untuk ditinjau"}
+            <Send className="size-4" /> {pending ? "Mengirim…" : "Kirim cerita"}
           </button>
         </div>
       </form>
