@@ -67,6 +67,13 @@ export type CatalogSaleOption = {
   imageUrl?: string | null
 }
 
+export type CatalogPackageComponent = {
+  name: string
+  variantName: string | null
+  quantity: number
+  note: string | null
+}
+
 export type CatalogPackage = {
   paket_sewa_id: string
   nama: string
@@ -81,6 +88,7 @@ export type CatalogPackage = {
   priceDurationUnit: string | null
   priceSource: "tarif" | "harga_dasar" | null
   canBook: boolean
+  components: CatalogPackageComponent[]
 }
 
 export type Catalog = {
@@ -162,6 +170,14 @@ type PublicPackagePromo = {
   harga_normal: string | number
   harga_promo: string | number
   currency_code: string
+}
+
+type PublicPackageComponent = {
+  paket_sewa_id: string
+  jumlah: string | number
+  catatan: string | null
+  barang: { nama: string } | null
+  varian: { nama: string } | null
 }
 
 type PublicMedia = {
@@ -419,7 +435,7 @@ async function loadPublicPackages(): Promise<CatalogPackage[]> {
   const packageIds = publicPackages.map((item) => item.paket_sewa_id)
   if (packageIds.length === 0) return []
 
-  const [mediaRes, tariffRes, promoRes] = await Promise.all([
+  const [mediaRes, tariffRes, promoRes, componentsRes] = await Promise.all([
     sb
       .from("paket_media")
       .select("paket_sewa_id,storage_bucket,storage_path,media_type,urutan,is_cover")
@@ -438,11 +454,17 @@ async function loadPublicPackages(): Promise<CatalogPackage[]> {
       .from("v_public_paket_promo")
       .select("paket_sewa_id,tarif_sewa_id,harga_normal,harga_promo,currency_code")
       .in("paket_sewa_id", packageIds),
+    sb
+      .from("komponen_paket")
+      .select("paket_sewa_id,jumlah,catatan,barang:barang!komponen_barang_tenant_fk(nama),varian:varian_barang!komponen_varian_tenant_fk(nama)")
+      .in("paket_sewa_id", packageIds)
+      .order("created_at", { ascending: true }),
   ])
 
   if (mediaRes.error) throw mediaRes.error
   if (tariffRes.error) throw tariffRes.error
   if (promoRes.error) throw promoRes.error
+  if (componentsRes.error) throw componentsRes.error
 
   const coverMediaByPackage = new Map<string, PublicMedia>()
   for (const media of (mediaRes.data ?? []) as PublicMedia[]) {
@@ -453,6 +475,19 @@ async function loadPublicPackages(): Promise<CatalogPackage[]> {
 
   const tariffs = (tariffRes.data ?? []) as PublicTariff[]
   const promos = (promoRes.data ?? []) as PublicPackagePromo[]
+  const packageComponents = (componentsRes.data ?? []) as unknown as PublicPackageComponent[]
+  const componentsByPackage = new Map<string, CatalogPackageComponent[]>()
+  for (const component of packageComponents) {
+    const components = componentsByPackage.get(component.paket_sewa_id) ?? []
+    components.push({
+      name: component.barang?.nama ?? "Perlengkapan",
+      variantName: component.varian?.nama ?? null,
+      quantity: toNumber(component.jumlah),
+      note: component.catatan,
+    })
+    componentsByPackage.set(component.paket_sewa_id, components)
+  }
+
   return publicPackages.map((row) => {
     const packageTariffs = tariffs.filter((tariff) => tariff.paket_sewa_id === row.paket_sewa_id)
     const tariff = pickBestTariff(packageTariffs)
@@ -482,6 +517,7 @@ async function loadPublicPackages(): Promise<CatalogPackage[]> {
       priceDurationUnit: tariff?.durasi_unit ?? null,
       priceSource: tariff ? "tarif" : normalPrice !== null ? "harga_dasar" : null,
       canBook: Boolean(tariff),
+      components: componentsByPackage.get(row.paket_sewa_id) ?? [],
     }
   })
 }
@@ -499,7 +535,7 @@ const getCachedCatalogBase = unstable_cache(
 
 const getCachedPublicPackages = unstable_cache(
   loadPublicPackages,
-  ["public-catalog-packages-v3", USAHA_SLUG],
+  ["public-catalog-packages-v4", USAHA_SLUG],
   CACHE_OPTIONS,
 )
 

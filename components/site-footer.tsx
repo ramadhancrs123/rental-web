@@ -12,14 +12,14 @@ export default function SiteFooter() {
   const waLink = "https://wa.me/" + BUSINESS_WHATSAPP + "?text=" + encodeURIComponent("Halo Tim Akasha, saya ingin bertanya tentang penyewaan perlengkapan outdoor.")
 
   return (
-    <footer id="kontak" className="scroll-mt-24 border-t border-border/60 bg-card px-4 pb-8 pt-14 sm:px-6 sm:pt-16 lg:px-8">
+    <footer id="kontak" className="scroll-mt-24 border-t border-border/60 bg-card px-4 pb-7 pt-9 sm:px-6 sm:pt-10 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[1fr_1.15fr] md:gap-12">
         <div>
           <Link href="/" className="inline-flex items-center gap-2.5">
             <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm"><Tent className="size-5" /></span>
             <span className="text-lg font-semibold tracking-tight">Akasha <span className="text-primary">Outdoor</span> <span className="font-display font-normal text-primary italic">Rent</span></span>
           </Link>
-          <p className="mt-4 max-w-md text-sm leading-6 text-muted-foreground"><span className="font-display text-base text-foreground/85 italic">Perlengkapan tepat, persiapan lebih mudah.</span>{" "}Rental perlengkapan camping dan pendakian di Garut, dengan pilihan sewa satuan, paket camping, dan kemudahan pemesanan melalui Akasha Smart Booking.</p>
+          <p className="mt-3 text-sm text-muted-foreground"><span className="font-display text-base text-foreground/85 italic">Perlengkapan tepat, persiapan lebih mudah.</span></p>
           <nav className="mt-6 flex flex-wrap gap-x-5 gap-y-3 text-sm text-muted-foreground">
             <Link href="/" className="transition hover:text-foreground">Beranda</Link>
             <Link href="/katalog" className="transition hover:text-foreground">Katalog</Link>
@@ -33,7 +33,7 @@ export default function SiteFooter() {
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <a href={MAP_URL} target="_blank" rel="noreferrer" className="group flex items-start gap-3 rounded-2xl border border-border/60 bg-background p-4 transition hover:border-primary/35">
               <MapPin className="mt-0.5 size-4 shrink-0 text-primary" />
-              <span className="min-w-0"><span className="block text-xs font-semibold">Lokasi Akasha</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{BUSINESS_ADDRESS}</span><span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary">Lihat peta <ArrowUpRight className="size-3" /></span></span>
+              <span className="min-w-0"><span className="block text-xs font-semibold">Lokasi Akasha</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">Garut, Jawa Barat</span><span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary">Lihat peta <ArrowUpRight className="size-3" /></span></span>
             </a>
             <div className="grid gap-3">
               <a href={"tel:" + BUSINESS_PHONE_INTL} className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background p-4 transition hover:border-primary/35"><Phone className="size-4 shrink-0 text-primary" /><span><span className="block text-xs font-semibold">Telepon</span><span className="mt-1 block text-sm text-muted-foreground">{BUSINESS_PHONE}</span></span></a>
@@ -43,7 +43,7 @@ export default function SiteFooter() {
           <a href={waLink} target="_blank" rel="noreferrer" className="mt-3 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:opacity-90"><MessageCircle className="size-4" /> Chat WhatsApp <ArrowUpRight className="size-4" /></a>
         </div>
       </div>
-      <div className="mx-auto mt-12 flex max-w-7xl flex-col gap-3 border-t border-border/60 pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto mt-8 flex max-w-7xl flex-col gap-3 border-t border-border/60 pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <p>© {new Date().getFullYear()} Akasha Outdoor Rent. Semua hak dilindungi.</p><p>Dirancang untuk petualangan yang lebih siap.</p>
       </div>
     </footer>

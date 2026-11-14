@@ -57,9 +57,7 @@ type ProductGroup = {
   sale: CatalogSaleOption[]
 }
 
-type Selection =
-  | { kind: "product"; group: ProductGroup }
-  | { kind: "package"; item: CatalogPackage }
+type Selection = { kind: "product"; group: ProductGroup }
 
 type SubmitResult = {
   reference_code: string
@@ -211,11 +209,26 @@ function formatRentalPeriod(value: number | null | undefined, unit: string | nul
   return formatTariffStayLabel(value ?? null, unit ?? null)
 }
 
-function Price({ price, normal, discount, duration }: { price: number; normal: number; discount: number; duration?: string | null }) {
+function Price({
+  price,
+  normal,
+  discount,
+  duration,
+  align = "right",
+}: {
+  price: number
+  normal: number
+  discount: number
+  duration?: string | null
+  align?: "left" | "right"
+}) {
   return (
-    <div className="text-right">
+    <div className={align === "left" ? "min-w-0 text-left" : "text-right"}>
       {discount > 0 && normal > price ? <p className="text-[10px] text-muted-foreground line-through">{formatRupiah(normal)}</p> : null}
-      <p className="text-sm font-bold text-primary">{formatRupiah(price)}{duration ? <span className="ml-1 text-[10px] font-normal text-muted-foreground">/ {duration}</span> : null}</p>
+      <p className="text-sm font-bold text-primary">
+        {formatRupiah(price)}
+        {duration ? <span className="ml-1 text-[10px] font-normal text-muted-foreground">/ {duration}</span> : null}
+      </p>
     </div>
   )
 }
@@ -247,7 +260,7 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
   const groups = useMemo(() => groupCatalog(catalog), [catalog])
   const categories = useMemo(() => [...new Set(groups.map((group) => group.category))].sort(), [groups])
   const today = useMemo(() => jakartaToday(), [])
-  const [filter, setFilter] = useState<"all" | "rental" | "sale">("all")
+  const [filter, setFilter] = useState<"all" | "rental" | "sale" | "package">("all")
   const [category, setCategory] = useState("Semua kategori")
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<Selection | null>(null)
@@ -257,6 +270,12 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
   const [reviewOpen, setReviewOpen] = useState(false)
   const [customerName, setCustomerName] = useState("")
   const [phone, setPhone] = useState("")
+  const [customerFieldErrors, setCustomerFieldErrors] = useState<{
+    name?: string
+    phone?: string
+  }>({})
+  const customerNameInputRef = useRef<HTMLInputElement>(null)
+  const customerPhoneInputRef = useRef<HTMLInputElement>(null)
   const [pickupDate, setPickupDate] = useState(addDays(today, 1))
   const [returnDate, setReturnDate] = useState(addDays(today, 2))
   const [note, setNote] = useState("")
@@ -314,6 +333,16 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
     )
   }, [groups, filter, category, query])
 
+  const visiblePackages = useMemo(() => {
+    const term = query.trim().toLocaleLowerCase("id-ID")
+    return catalog.packages.filter((item) =>
+      !term || [item.nama, item.deskripsi ?? "", ...item.components.map((component) => component.name), ...item.components.map((component) => component.variantName ?? "")]
+        .join(" ")
+        .toLocaleLowerCase("id-ID")
+        .includes(term),
+    )
+  }, [catalog.packages, query])
+
   const rentalLines = cart.filter((line) => line.kind === "rental")
   const saleLines = cart.filter((line) => line.kind === "sale")
   const hasRental = rentalLines.length > 0
@@ -338,6 +367,30 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
     window.setTimeout(() => setNotice(""), 2200)
   }
 
+  function addPackageToCart(item: CatalogPackage) {
+    if (!item.canBook || item.price === null) return
+
+    const id = "rental:package:" + item.paket_sewa_id
+    const existing = cart.find((line) => line.id === id)
+    if (existing) {
+      if (existing.quantity >= MAX_QUANTITY) {
+        notify("Jumlah paket maksimal " + MAX_QUANTITY + " paket.")
+        return
+      }
+      setCart(cart.map((line) => line.id === id
+        ? { ...line, quantity: line.quantity + 1 }
+        : line))
+    } else {
+      if (cart.length >= MAX_LINES) {
+        notify("Maksimal " + MAX_LINES + " jenis barang dalam satu booking.")
+        return
+      }
+      setCart([...cart, fromPackage(item, 1)])
+    }
+
+    notify(item.nama + " ditambahkan ke keranjang.")
+  }
+
   function openProduct(group: ProductGroup) {
     const current: Record<string, number> = {}
     for (const option of group.rental) {
@@ -352,38 +405,23 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
     setSelected({ kind: "product", group })
   }
 
-  function openPackage(item: CatalogPackage) {
-    const id = "rental:package:" + item.paket_sewa_id
-    const existing = cart.find((line) => line.id === id)
-    setDraftQuantities({ [id]: existing?.quantity ?? 0 })
-    setSelected({ kind: "package", item })
-  }
-
   function commitSelection() {
     if (!selected) return
     const replacement: BookingCartLine[] = []
     const replacedIds = new Set<string>()
 
-    if (selected.kind === "package") {
-      const item = selected.item
-      const id = "rental:package:" + item.paket_sewa_id
+    const group = selected.group
+    for (const option of group.rental) {
+      const id = lineId("rental", option.key)
       replacedIds.add(id)
       const quantity = draftQuantities[id] ?? 0
-      if (quantity > 0 && item.canBook && item.price !== null) replacement.push(fromPackage(item, quantity))
-    } else {
-      const group = selected.group
-      for (const option of group.rental) {
-        const id = lineId("rental", option.key)
-        replacedIds.add(id)
-        const quantity = draftQuantities[id] ?? 0
-        if (quantity > 0) replacement.push(fromRental(option, quantity, group.imageUrl))
-      }
-      for (const option of group.sale) {
-        const id = lineId("sale", option.key)
-        replacedIds.add(id)
-        const quantity = draftQuantities[id] ?? 0
-        if (quantity > 0) replacement.push(fromSale(option, quantity, group.imageUrl))
-      }
+      if (quantity > 0) replacement.push(fromRental(option, quantity, group.imageUrl))
+    }
+    for (const option of group.sale) {
+      const id = lineId("sale", option.key)
+      replacedIds.add(id)
+      const quantity = draftQuantities[id] ?? 0
+      if (quantity > 0) replacement.push(fromSale(option, quantity, group.imageUrl))
     }
 
     const next = [...cart.filter((line) => !replacedIds.has(line.id)), ...replacement]
@@ -419,15 +457,40 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
     if (submittingRef.current) return
     setError("")
 
+    const normalizedName = customerName.trim()
     const normalizedPhone = phone.replace(/\D/g, "")
-    if (customerName.trim().length < 2) {
-      setError("Nama minimal 2 karakter.")
+
+    if (normalizedName.length < 2) {
+      setCustomerFieldErrors({
+        name: normalizedName.length === 0
+          ? "Nama lengkap perlu diisi sebelum booking dikirim."
+          : "Nama lengkap minimal 2 karakter.",
+      })
+      requestAnimationFrame(() => {
+        const input = customerNameInputRef.current
+        if (!input) return
+        input.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" })
+        input.focus({ preventScroll: true })
+      })
       return
     }
+
     if (normalizedPhone.length < 8 || normalizedPhone.length > 16) {
-      setError("Nomor WhatsApp tidak valid.")
+      setCustomerFieldErrors({
+        phone: normalizedPhone.length === 0
+          ? "Nomor WhatsApp perlu diisi agar admin dapat menghubungi Anda."
+          : "Periksa nomor WhatsApp. Masukkan 8–16 digit angka.",
+      })
+      requestAnimationFrame(() => {
+        const input = customerPhoneInputRef.current
+        if (!input) return
+        input.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" })
+        input.focus({ preventScroll: true })
+      })
       return
     }
+
+    setCustomerFieldErrors({})
     if (cart.length < 1 || cart.length > MAX_LINES) {
       setError("Pilih 1–10 jenis barang sebelum mengirim booking.")
       return
@@ -544,14 +607,12 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
     }
   }
 
-  const draftTotal = selected?.kind === "package"
-    ? (selected.item.price ?? 0) * (draftQuantities["rental:package:" + selected.item.paket_sewa_id] ?? 0)
-    : selected?.kind === "product"
-      ? [
-          ...selected.group.rental.map((option) => option.price * (draftQuantities[lineId("rental", option.key)] ?? 0)),
-          ...selected.group.sale.map((option) => option.price * (draftQuantities[lineId("sale", option.key)] ?? 0)),
-        ].reduce((sum, value) => sum + value, 0)
-      : 0
+  const draftTotal = selected
+    ? [
+        ...selected.group.rental.map((option) => option.price * (draftQuantities[lineId("rental", option.key)] ?? 0)),
+        ...selected.group.sale.map((option) => option.price * (draftQuantities[lineId("sale", option.key)] ?? 0)),
+      ].reduce((sum, value) => sum + value, 0)
+    : 0
 
   return (
     <div className="min-h-screen bg-background pb-28 text-foreground">
@@ -579,34 +640,140 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
         <div className="mx-auto flex max-w-7xl flex-col gap-2 md:flex-row md:items-center">
           <div className="flex min-w-0 items-center gap-2">
             <div className="inline-flex shrink-0 gap-0.5 rounded-xl bg-muted p-1" aria-label="Jenis katalog">
-              {([[ "all", "Semua" ], [ "rental", "Sewa" ], [ "sale", "Beli" ]] as const).map(([key, label]) => (
-                <button key={key} type="button" onClick={() => { setFilter(key); if (key === "sale") setCategory("Semua kategori") }} aria-pressed={filter === key} className={"rounded-lg px-3 py-2 text-[11px] font-semibold transition " + (filter === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>{label}</button>
+              {([[ "all", "Semua" ], [ "rental", "Sewa" ], [ "sale", "Beli" ], [ "package", "Paket" ]] as const).map(([key, label]) => (
+                <button key={key} type="button" onClick={() => { setFilter(key); if (key === "sale" || key === "package") setCategory("Semua kategori") }} aria-pressed={filter === key} className={"rounded-lg px-2.5 py-2 text-[11px] font-semibold transition sm:px-3 " + (filter === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>{label}</button>
               ))}
             </div>
-            <label className="relative block min-w-0 flex-1 md:w-[170px] md:flex-none">
-              <SlidersHorizontal className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Kategori" className="h-9 w-full appearance-none rounded-xl border border-border bg-card pl-9 pr-8 text-xs outline-none focus:border-primary/50">
-                <option>Semua kategori</option>{categories.map((name) => <option key={name}>{name}</option>)}
-              </select>
-              <ChevronRight className="pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 rotate-90 text-muted-foreground" />
-            </label>
+            {filter !== "package" ? (
+              <label className="relative block min-w-0 flex-1 md:w-[170px] md:flex-none">
+                <SlidersHorizontal className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Kategori" className="h-9 w-full appearance-none rounded-xl border border-border bg-card pl-9 pr-8 text-xs outline-none focus:border-primary/50">
+                  <option>Semua kategori</option>{categories.map((name) => <option key={name}>{name}</option>)}
+                </select>
+                <ChevronRight className="pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 rotate-90 text-muted-foreground" />
+              </label>
+            ) : null}
           </div>
           <label className="relative block min-w-0 md:ml-auto md:w-[280px] md:shrink-0">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari perlengkapan..." aria-label="Cari perlengkapan" className="h-9 w-full rounded-xl border border-border bg-card pl-9 pr-3 text-xs outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/10" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={filter === "package" ? "Cari paket..." : "Cari perlengkapan..."} aria-label={filter === "package" ? "Cari paket" : "Cari perlengkapan"} className="h-9 w-full rounded-xl border border-border bg-card pl-9 pr-3 text-xs outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/10" />
           </label>
         </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
         <div className="mb-5 flex items-end justify-between gap-3">
-          <div><p className="text-[11px] font-bold tracking-[0.14em] text-primary uppercase">Katalog publik</p><h2 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">{filter === "rental" ? "Perlengkapan untuk disewa" : filter === "sale" ? "Barang untuk dibeli" : "Pilih kebutuhanmu"}</h2></div>
-          <span className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">{visible.length} produk</span>
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.14em] text-primary uppercase">{filter === "package" ? "Paket perlengkapan" : "Katalog publik"}</p>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
+              {filter === "rental" ? "Perlengkapan untuk disewa" : filter === "sale" ? "Barang untuk dibeli" : filter === "package" ? "Paket siap digunakan" : "Pilih kebutuhanmu"}
+            </h2>
+          </div>
+          <span className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+            {filter === "package" ? visiblePackages.length + " paket" : visible.length + " produk"}
+          </span>
         </div>
+
         {catalogLoadFailed ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center"><Package className="mx-auto size-8 text-muted-foreground/50" /><h3 className="mt-3 text-base font-semibold">Katalog belum dapat dimuat</h3><p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted-foreground">Produk dan tarif belum tersedia. Muat ulang halaman atau hubungi pengelola.</p></div>
+          <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center">
+            <Package className="mx-auto size-8 text-muted-foreground/50" />
+            <h3 className="mt-3 text-base font-semibold">Katalog belum dapat dimuat</h3>
+            <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted-foreground">Produk dan tarif belum tersedia. Muat ulang halaman atau hubungi pengelola.</p>
+          </div>
+        ) : filter === "package" ? (
+          visiblePackages.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center">
+              <PackageCheck className="mx-auto size-8 text-muted-foreground/50" />
+              <h3 className="mt-3 text-base font-semibold">{query.trim() ? "Paket tidak ditemukan" : "Paket belum tersedia"}</h3>
+              <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
+                {query.trim() ? "Coba kata pencarian lain." : "Pilihan paket akan tampil di sini setelah dipublikasikan oleh Akasha Outdoor."}
+              </p>
+              {query.trim() ? <button type="button" onClick={() => setQuery("")} className="mt-4 text-sm font-semibold text-primary">Hapus pencarian</button> : null}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
+              {visiblePackages.map((item) => {
+                const id = "rental:package:" + item.paket_sewa_id
+                const selectedQuantity = cart.find((line) => line.id === id)?.quantity ?? 0
+                const saving = item.normalPrice !== null && item.price !== null
+                  ? Math.max(0, item.normalPrice - item.price)
+                  : 0
+                return (
+                  <article key={item.paket_sewa_id} className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition hover:border-primary/30 hover:shadow-md">
+                    <div className="product-art relative aspect-[2.45/1] w-full overflow-hidden bg-muted/30">
+                      {item.imageUrl ? (
+                        <Image src={item.imageUrl} alt={item.nama} fill unoptimized sizes="(max-width: 640px) 100vw, (max-width: 1279px) 50vw, 33vw" className="object-contain p-1.5" />
+                      ) : (
+                        <div className="grid h-full place-items-center">
+                          <PackageCheck className="size-12 text-primary/45" strokeWidth={1.1} />
+                        </div>
+                      )}
+                      <span className="absolute top-2.5 left-2.5 rounded-full border border-border/60 bg-card/90 px-2.5 py-1 text-[9px] font-bold tracking-[0.12em] text-muted-foreground uppercase">Paket sewa</span>
+                    </div>
+
+                    <div className="flex flex-1 flex-col p-3.5 sm:p-4">
+                      <h3 className="text-sm font-semibold leading-5 sm:text-base">{item.nama}</h3>
+                      {item.deskripsi ? <p className="mt-1.5 line-clamp-2 min-h-9 text-[11px] leading-4.5 text-muted-foreground">{item.deskripsi}</p> : null}
+
+                      <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
+                        <div className="min-w-0">
+                          {item.normalPrice !== null && item.price !== null && item.normalPrice > item.price ? (
+                            <p className="text-[10px] text-muted-foreground line-through">{formatRupiah(item.normalPrice)}</p>
+                          ) : null}
+                          <p className="text-lg font-bold tracking-tight text-primary">
+                            {item.price === null ? "Tarif belum tersedia" : formatRupiah(item.price)}
+                          </p>
+                          {item.priceDurationValue && item.priceDurationUnit ? (
+                            <p className="mt-0.5 text-[10px] text-muted-foreground">Per {formatRentalPeriod(item.priceDurationValue, item.priceDurationUnit)}</p>
+                          ) : null}
+                        </div>
+                        {saving > 0 ? <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">Hemat {formatRupiah(saving)}</span> : null}
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={!item.canBook || item.price === null}
+                        onClick={() => addPackageToCart(item)}
+                        className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Plus className="size-4" />
+                        {selectedQuantity > 0 ? "Tambah lagi · " + selectedQuantity + " di keranjang" : "Tambah Paket"}
+                      </button>
+
+                      <details className="group mt-3 border-t border-border/70 pt-2.5">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[11px] font-semibold text-muted-foreground transition hover:text-foreground [&::-webkit-details-marker]:hidden">
+                          <span>Lihat isi paket ({item.components.length} barang)</span>
+                          <ChevronRight className="size-4 shrink-0 transition-transform duration-200 group-open:rotate-90" />
+                        </summary>
+                        <div className="mt-2.5 space-y-2 rounded-xl bg-muted/40 p-3">
+                          {item.components.length > 0 ? item.components.map((component, index) => (
+                            <div key={item.paket_sewa_id + ":" + index} className="flex items-start justify-between gap-3 text-xs">
+                              <div className="min-w-0">
+                                <p className="font-medium text-foreground">
+                                  {component.name}{component.variantName ? " · " + component.variantName : ""}
+                                </p>
+                                {component.note ? <p className="mt-0.5 text-[10px] leading-4 text-muted-foreground">{component.note}</p> : null}
+                              </div>
+                              <span className="shrink-0 font-semibold tabular-nums text-muted-foreground">× {component.quantity}</span>
+                            </div>
+                          )) : (
+                            <p className="text-[10px] leading-4 text-muted-foreground">Rincian komponen paket belum tersedia.</p>
+                          )}
+                        </div>
+                      </details>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          )
         ) : visible.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center"><Search className="mx-auto size-8 text-muted-foreground/50" /><h3 className="mt-3 text-base font-semibold">Produk tidak ditemukan</h3><p className="mt-1 text-sm text-muted-foreground">Coba kata pencarian atau kategori lain.</p><button type="button" onClick={() => { setQuery(""); setCategory("Semua kategori"); setFilter("all") }} className="mt-4 text-sm font-semibold text-primary">Atur ulang filter</button></div>
+          <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center">
+            <Search className="mx-auto size-8 text-muted-foreground/50" />
+            <h3 className="mt-3 text-base font-semibold">Produk tidak ditemukan</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Coba kata pencarian atau kategori lain.</p>
+            <button type="button" onClick={() => { setQuery(""); setCategory("Semua kategori"); setFilter("all") }} className="mt-4 text-sm font-semibold text-primary">Atur ulang filter</button>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
             {visible.map((group) => {
@@ -634,23 +801,6 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
         )}
       </section>
 
-      {filter !== "sale" && catalog.packages.length > 0 ? (
-        <section className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
-          <div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-[11px] font-bold tracking-[0.14em] text-primary uppercase">Pilihan praktis</p><h2 className="mt-1 text-xl font-semibold tracking-tight">Paket sewa</h2></div><span className="text-xs text-muted-foreground">{catalog.packages.length} paket</span></div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {catalog.packages.map((item) => (
-              <button key={item.paket_sewa_id} type="button" disabled={!item.canBook} onClick={() => openPackage(item)} className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3.5 text-left transition hover:border-primary/35 disabled:cursor-not-allowed disabled:opacity-50">
-                <span className="product-art relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl">
-                  {item.imageUrl ? <Image src={item.imageUrl} alt="" fill unoptimized sizes="64px" className="object-contain p-2" /> : <PackageCheck className="size-7 text-primary/60" />}
-                </span>
-                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{item.nama}</span><span className="mt-1 block text-xs font-bold text-primary">{item.price === null ? "Tarif belum tersedia" : formatRupiah(item.price)}</span>{item.canBook && formatRentalPeriod(item.priceDurationValue, item.priceDurationUnit) ? <span className="mt-0.5 block text-[10px] text-muted-foreground">{formatRentalPeriod(item.priceDurationValue, item.priceDurationUnit)}</span> : null}{!item.canBook ? <span className="mt-0.5 block text-[10px] text-muted-foreground">Tarif belum aktif</span> : null}</span>
-                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-              </button>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
       <section className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3 rounded-2xl border border-primary/15 bg-primary/[0.045] p-4 sm:flex-row sm:items-center">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><CalendarDays className="size-5" /></span>
@@ -676,28 +826,74 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
       {selected ? (
         <Overlay onClose={() => setSelected(null)} labelledBy="product-dialog-title" className="max-w-xl rounded-t-[1.5rem] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6">
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0"><p className="text-[10px] font-bold tracking-[0.15em] text-primary uppercase">{selected.kind === "package" ? "Paket sewa" : selected.group.category}</p><h2 id="product-dialog-title" className="mt-1 text-xl font-semibold tracking-tight">{selected.kind === "package" ? selected.item.nama : selected.group.name}</h2></div>
+            <div className="min-w-0"><p className="text-[10px] font-bold tracking-[0.15em] text-primary uppercase">{selected.group.category}</p><h2 id="product-dialog-title" className="mt-1 text-xl font-semibold tracking-tight">{selected.group.name}</h2></div>
             <button type="button" onClick={() => setSelected(null)} aria-label="Tutup pilihan barang" className="grid size-9 shrink-0 place-items-center rounded-full border border-border text-muted-foreground hover:bg-muted"><X className="size-4" /></button>
           </div>
 
-          {selected.kind === "package" ? (
-            <div className="mt-5 rounded-xl border border-border/70 p-3">
-              <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">Paket lengkap</p><p className="mt-1 text-[11px] text-muted-foreground">Harga paket</p></div><Price price={selected.item.price ?? 0} normal={selected.item.normalPrice ?? selected.item.price ?? 0} discount={selected.item.discountPercent} duration={formatRentalPeriod(selected.item.priceDurationValue, selected.item.priceDurationUnit)} /></div>
-              <div className="mt-3 flex items-center justify-between gap-3"><span className="text-xs text-muted-foreground">Jumlah paket</span><QuantityControl value={draftQuantities["rental:package:" + selected.item.paket_sewa_id] ?? 0} onChange={(value) => setDraftQuantities((current) => ({ ...current, ["rental:package:" + selected.item.paket_sewa_id]: value }))} label="paket" /></div>
-            </div>
-          ) : (
-            <>
+          <>
               {selected.group.description ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{selected.group.description}</p> : null}
               {selected.group.rental.length > 0 ? <div className="mt-4"><div className="mb-2 flex items-center gap-2 text-xs font-bold"><Tent className="size-4 text-primary" /> Pilihan sewa</div><div className="space-y-2">{selected.group.rental.map((option) => {
                 const id = lineId("rental", option.key)
-                return <div key={id} className="flex items-center gap-3 rounded-xl border border-border/70 p-3"><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{option.varian_nama ?? "Barang utama"}</p><p className="mt-0.5 text-[10px] text-muted-foreground">Durasi: {stayLabel ?? "Pilih jadwal"}</p></div><Price price={option.price} normal={option.normalPrice} discount={option.discountPercent} duration={formatRentalPeriod(option.priceDurationValue, option.priceDurationUnit) ?? "sewa"} /><QuantityControl value={draftQuantities[id] ?? 0} onChange={(value) => setDraftQuantities((current) => ({ ...current, [id]: value }))} label={option.varian_nama ?? option.barang_nama} /></div>
+                const itemLabel = option.varian_nama
+                  ? option.barang_nama + " · " + option.varian_nama
+                  : option.barang_nama
+                return (
+                  <div key={id} className="rounded-xl border border-border/70 p-3 sm:p-3.5">
+                    <p className="whitespace-normal break-words text-sm font-semibold leading-5 [overflow-wrap:anywhere]" title={itemLabel}>
+                      {itemLabel}
+                    </p>
+                    <div className="mt-2 flex items-end justify-between gap-2.5 sm:gap-3">
+                      <div className="min-w-0 flex-1">
+                        <Price
+                          price={option.price}
+                          normal={option.normalPrice}
+                          discount={option.discountPercent}
+                          duration={formatRentalPeriod(option.priceDurationValue, option.priceDurationUnit) ?? "sewa"}
+                          align="left"
+                        />
+                        <p className="mt-0.5 text-[10px] leading-4 text-muted-foreground">
+                          Durasi booking: {stayLabel ?? "Pilih jadwal"}
+                        </p>
+                      </div>
+                      <QuantityControl
+                        value={draftQuantities[id] ?? 0}
+                        onChange={(value) => setDraftQuantities((current) => ({ ...current, [id]: value }))}
+                        label={itemLabel}
+                      />
+                    </div>
+                  </div>
+                )
               })}</div></div> : null}
               {selected.group.sale.length > 0 ? <div className="mt-4"><div className="mb-2 flex items-center gap-2 text-xs font-bold"><ShoppingBag className="size-4 text-primary" /> Pilihan beli</div><div className="space-y-2">{selected.group.sale.map((option) => {
                 const id = lineId("sale", option.key)
-                return <div key={id} className="flex items-center gap-3 rounded-xl border border-border/70 p-3"><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{option.varian_nama ?? "Satu pilihan barang"}</p><p className="mt-0.5 text-[10px] text-muted-foreground">Harga satuan</p></div><Price price={option.price} normal={option.normalPrice} discount={option.discountPercent} /><QuantityControl value={draftQuantities[id] ?? 0} onChange={(value) => setDraftQuantities((current) => ({ ...current, [id]: value }))} label={option.varian_nama ?? option.barang_nama} /></div>
+                const itemLabel = option.varian_nama
+                  ? option.barang_nama + " · " + option.varian_nama
+                  : option.barang_nama
+                return (
+                  <div key={id} className="rounded-xl border border-border/70 p-3 sm:p-3.5">
+                    <p className="whitespace-normal break-words text-sm font-semibold leading-5 [overflow-wrap:anywhere]" title={itemLabel}>
+                      {itemLabel}
+                    </p>
+                    <div className="mt-2 flex items-end justify-between gap-2.5 sm:gap-3">
+                      <div className="min-w-0 flex-1">
+                        <Price
+                          price={option.price}
+                          normal={option.normalPrice}
+                          discount={option.discountPercent}
+                          align="left"
+                        />
+                        <p className="mt-0.5 text-[10px] leading-4 text-muted-foreground">Harga satuan</p>
+                      </div>
+                      <QuantityControl
+                        value={draftQuantities[id] ?? 0}
+                        onChange={(value) => setDraftQuantities((current) => ({ ...current, [id]: value }))}
+                        label={itemLabel}
+                      />
+                    </div>
+                  </div>
+                )
               })}</div></div> : null}
-            </>
-          )}
+          </>
 
           <div className="mt-5 rounded-xl bg-muted/45 p-3"><div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Subtotal pilihan</span><strong className="text-sm text-primary">{formatRupiah(draftTotal)}</strong></div><p className="mt-1 text-[10px] text-muted-foreground">Perkiraan total akan menyesuaikan lama sewa yang Anda pilih.</p></div>
           {error ? <p role="alert" className="mt-3 text-xs text-destructive">{error}</p> : null}
@@ -726,7 +922,7 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
         <Overlay onClose={() => { if (!submitting) setReviewOpen(false) }} labelledBy="booking-review-title" className="max-w-2xl rounded-t-[1.5rem] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6">
           <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold tracking-[0.15em] text-primary uppercase">Langkah terakhir</p><h2 id="booking-review-title" className="mt-1 text-xl font-semibold tracking-tight">Konfirmasi booking</h2><p className="mt-1 text-xs text-muted-foreground">Periksa pilihan Anda sebelum mengirim permintaan.</p></div><button type="button" disabled={submitting} onClick={() => setReviewOpen(false)} aria-label="Tutup konfirmasi booking" className="grid size-9 shrink-0 place-items-center rounded-full border border-border text-muted-foreground disabled:opacity-40"><X className="size-4" /></button></div>
 
-          <form onSubmit={submitBooking} className="mt-4 space-y-4">
+          <form noValidate onSubmit={submitBooking} className="mt-4 space-y-4">
             <section className="rounded-2xl border border-border/70 p-3 sm:p-4">
               <div className="mb-3 flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">Barang pilihan</h3><button type="button" onClick={() => { setReviewOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }) }} className="text-[10px] font-semibold text-primary">Ubah pilihan barang</button></div>
               <div className="divide-y divide-border/60">
@@ -763,8 +959,66 @@ export default function BookingCatalogExperience({ catalog, catalogLoadFailed }:
             <section className="rounded-2xl border border-border/70 p-3 sm:p-4">
               <h3 className="mb-3 text-sm font-semibold">Data Anda</h3>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="space-y-1 text-[11px] font-medium"><span>Nama lengkap</span><input autoComplete="name" required minLength={2} maxLength={120} value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Nama sesuai identitas" className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm" /></label>
-                <label className="space-y-1 text-[11px] font-medium"><span>Nomor WhatsApp</span><input autoComplete="tel" inputMode="tel" type="tel" required minLength={8} maxLength={24} value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="08xxxxxxxxxx" className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm" /></label>
+                <label className="min-w-0 space-y-1.5 text-[11px] font-medium">
+                  <span>Nama lengkap</span>
+                  <input
+                    ref={customerNameInputRef}
+                    autoComplete="name"
+                    required
+                    aria-required="true"
+                    aria-invalid={Boolean(customerFieldErrors.name)}
+                    aria-describedby={customerFieldErrors.name ? "booking-customer-name-error" : undefined}
+                    minLength={2}
+                    maxLength={120}
+                    value={customerName}
+                    onChange={(event) => {
+                      setCustomerName(event.target.value)
+                      setCustomerFieldErrors((current) => ({ ...current, name: undefined }))
+                    }}
+                    placeholder="Nama sesuai identitas"
+                    className={"h-11 w-full rounded-xl border bg-background px-3 text-sm outline-none transition focus:ring-2 " + (
+                      customerFieldErrors.name
+                        ? "border-destructive focus:border-destructive focus:ring-destructive/10"
+                        : "border-border focus:border-primary/50 focus:ring-primary/10"
+                    )}
+                  />
+                  {customerFieldErrors.name ? (
+                    <span id="booking-customer-name-error" role="alert" className="block text-[10px] leading-4 text-destructive">
+                      {customerFieldErrors.name}
+                    </span>
+                  ) : null}
+                </label>
+                <label className="min-w-0 space-y-1.5 text-[11px] font-medium">
+                  <span>Nomor WhatsApp</span>
+                  <input
+                    ref={customerPhoneInputRef}
+                    autoComplete="tel"
+                    aria-required="true"
+                    aria-invalid={Boolean(customerFieldErrors.phone)}
+                    aria-describedby={customerFieldErrors.phone ? "booking-customer-phone-error" : undefined}
+                    inputMode="tel"
+                    type="tel"
+                    required
+                    minLength={8}
+                    maxLength={24}
+                    value={phone}
+                    onChange={(event) => {
+                      setPhone(event.target.value)
+                      setCustomerFieldErrors((current) => ({ ...current, phone: undefined }))
+                    }}
+                    placeholder="08xxxxxxxxxx"
+                    className={"h-11 w-full rounded-xl border bg-background px-3 text-sm outline-none transition focus:ring-2 " + (
+                      customerFieldErrors.phone
+                        ? "border-destructive focus:border-destructive focus:ring-destructive/10"
+                        : "border-border focus:border-primary/50 focus:ring-primary/10"
+                    )}
+                  />
+                  {customerFieldErrors.phone ? (
+                    <span id="booking-customer-phone-error" role="alert" className="block text-[10px] leading-4 text-destructive">
+                      {customerFieldErrors.phone}
+                    </span>
+                  ) : null}
+                </label>
               </div>
               <p className="mt-2 text-[10px] leading-4 text-muted-foreground">{hasRental ? "Jika nomor WhatsApp Anda sudah terdaftar, Anda berkesempatan mendapatkan potongan harga atau promo khusus pelanggan." : "Nomor ini digunakan untuk akses booking dan konfirmasi pesanan."}</p>
               <label className="mt-3 block space-y-1 text-[11px] font-medium"><span>Catatan <span className="font-normal text-muted-foreground">(opsional)</span></span><textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={500} rows={2} placeholder="Ada kebutuhan khusus? Tulis di sini." className="w-full resize-y rounded-xl border border-border bg-background px-3 py-2 text-sm" /></label>
