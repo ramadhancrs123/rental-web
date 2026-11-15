@@ -1,12 +1,14 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
+import Image from "next/image"
 import {
   Activity,
   CalendarDays,
   CheckCircle2,
   CircleAlert,
   Clipboard,
+  Download,
   FileText,
   History,
   LayoutDashboard,
@@ -15,19 +17,30 @@ import {
   Package,
   Plus,
   RefreshCw,
+  Search,
   ShieldCheck,
+  ShoppingBag,
   SlidersHorizontal,
+  Tent,
   Trash2,
   X,
 } from "lucide-react"
 import { formatRupiah } from "@/lib/supabase"
 import { parsePortalAccessFragment } from "@/lib/akasha-smart-booking/portal-link"
 import { createClientId } from "@/lib/client-id"
-import { calculateRentalEstimate, calculateTariffPeriodsForDates, formatRentalStayLabel } from "@/lib/rental-estimate"
+import {
+  calculateRentalEstimate,
+  calculateTariffPeriodsForDates,
+  formatRentalStayLabel,
+  getMinimumSchedulePickupDate,
+  isValidSchedulePickupDate,
+} from "@/lib/rental-estimate"
 import { getAvailabilityIndicator, isAvailabilityConditional, isAvailabilityShortage } from "@/lib/akasha-smart-booking/availability"
+import { createBookingReceiptQr, exportBookingReceipt, type BookingReceipt } from "@/lib/akasha-smart-booking/booking-receipt"
 import type { Catalog } from "@/lib/catalog"
 import {
   getSmartBookingCatalogOptions,
+  hasSmartBookingQuantityChanges,
   toSmartBookingLine,
   type SmartBookingCatalogOption,
 } from "@/lib/akasha-smart-booking/catalog-options"
@@ -109,6 +122,7 @@ type PortalData = {
   requested_return_at: string | null
   business_timezone: string
   quote_total: number
+  dp_amount: number | null
   currency_code: string
   quote_expires_at: string | null
   revision: number
@@ -159,15 +173,15 @@ const MAX_CHANGE_LINES = 10
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
     received: "Booking diterima",
-    reviewing: "Sedang ditinjau",
-    acknowledged: "Sudah ditinjau",
-    customer_action_required: "Menunggu tanggapan Anda",
-    change_requested: "Perubahan menunggu admin",
-    cancellation_pending: "Pembatalan menunggu admin",
-    ready_for_checkout: "Sudah ditinjau · lanjut di lokasi",
+    reviewing: "Ditinjau admin",
+    acknowledged: "Booking dikonfirmasi",
+    customer_action_required: "Perlu tindakan",
+    change_requested: "Perubahan diajukan",
+    cancellation_pending: "Pembatalan diajukan",
+    ready_for_checkout: "Booking dikonfirmasi",
     cancelled: "Dibatalkan",
     expired: "Kedaluwarsa",
-    fulfilled: "Transaksi telah dibuat",
+    fulfilled: "Selesai",
   }
   return labels[status] ?? "Status sedang diperbarui"
 }
@@ -192,14 +206,14 @@ function formatPortalDateTime(value: string | null, timezone: string) {
 
 function rentalProgressLabel(status: string) {
   const labels: Record<string, string> = {
-    preparing: "Barang sedang disiapkan",
-    prepared: "Barang disiapkan, menunggu serah-terima",
+    preparing: "Disiapkan",
+    prepared: "Siap diserahkan",
     ready_for_pickup: "Siap diambil",
-    handed_over: "Sudah diserahkan kepada Anda",
-    return_in_progress: "Pengembalian sedang diperiksa",
+    handed_over: "Sudah diserahkan",
+    return_in_progress: "Pengembalian diperiksa",
     returned: "Sudah dikembalikan",
   }
-  return labels[status] ?? "Sedang ditindaklanjuti pengelola"
+  return labels[status] ?? "Sedang diproses"
 }
 
 function rentalTrackingLabel(
@@ -209,13 +223,13 @@ function rentalTrackingLabel(
   returnStartedAt: string | null,
 ) {
   if (returnCompletedAt) return "Sudah dikembalikan"
-  if (returnStartedAt) return "Pengembalian sedang diperiksa"
+  if (returnStartedAt) return "Pengembalian diperiksa"
   if (actualPickupAt) return "Penyewaan aktif · barang telah diserahkan"
   const labels: Record<string, string> = {
     draft: "Menunggu penyiapan barang",
     ready_for_pickup: "Siap diambil",
     active: "Penyewaan aktif",
-    return_in_progress: "Pengembalian sedang diperiksa",
+    return_in_progress: "Pengembalian diperiksa",
     completed: "Sudah dikembalikan",
     cancelled: "Penyewaan dibatalkan",
   }
@@ -257,17 +271,6 @@ function requestStatusLabel(status: string) {
     applied: "Sudah diterapkan",
   }
   return labels[status] ?? "Status diperbarui"
-}
-
-function optionLabel(option: SmartBookingCatalogOption) {
-  const item = option.varian_nama
-    ? option.barang_nama + " · " + option.varian_nama
-    : option.barang_nama
-  const type = option.kind === "rental" ? "Sewa" : "Beli"
-  const duration = option.priceDurationValue && option.priceDurationUnit
-    ? " / " + option.priceDurationValue + " " + option.priceDurationUnit
-    : ""
-  return type + " · " + item + " · " + formatRupiah(option.price) + duration
 }
 
 function optionKeyFromPortalLine(line: PortalLine): string | null {
@@ -378,24 +381,47 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
   )
   const [pickupDate, setPickupDate] = useState("")
   const [returnDate, setReturnDate] = useState("")
+  const [schedulePickupDate, setSchedulePickupDate] = useState("")
+  const [scheduleReturnDate, setScheduleReturnDate] = useState("")
   const [draftQty, setDraftQty] = useState<Record<string, number>>({})
-  const [newOptionKey, setNewOptionKey] = useState("")
-  const [itemDraftChanged, setItemDraftChanged] = useState(false)
+  const [catalogSearch, setCatalogSearch] = useState("")
+  const [catalogCategory, setCatalogCategory] = useState("Semua")
+  const [catalogOpen, setCatalogOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState<"overview" | "detail" | "tracking" | "manage" | "history">("overview")
   const [manageDialog, setManageDialog] = useState<"items" | "schedule" | null>(null)
+  const [alternativeDraft, setAlternativeDraft] = useState<{ line: PortalLine; option: SmartBookingCatalogOption } | null>(null)
+  const [receiptQrDataUrl, setReceiptQrDataUrl] = useState<string | null>(null)
+  const [receiptExporting, setReceiptExporting] = useState<"png" | "pdf" | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const changeIdempotencyKeysRef = useRef(new Map<string, string>())
   const portalBootstrapRef = useRef<Promise<{ portal: PortalData | null; availability: AvailabilityData | null; error: string | null }> | null>(null)
+  const originalDraftQty = useMemo(
+    () => buildDraftQuantities(portal?.lines ?? [], optionByKey),
+    [portal?.lines, optionByKey],
+  )
+  const draftHasChanges = portal
+    ? hasSmartBookingQuantityChanges(originalDraftQty, draftQty)
+    : false
 
   function applyPortalData(data: PortalData) {
     setPortal(data)
     setPickupDate(data.requested_pickup_date ?? "")
     setReturnDate(data.requested_return_date ?? "")
     setDraftQty(buildDraftQuantities(data.lines ?? [], optionByKey))
-    setItemDraftChanged(false)
+    setCatalogOpen(false)
+  }
+
+  function openItemsDialog() {
+    if (!portal) return
+    setDraftQty(buildDraftQuantities(portal.lines ?? [], optionByKey))
+    setCatalogSearch("")
+    setCatalogCategory("Semua")
+    setCatalogOpen(false)
+    setError(null)
+    setManageDialog("items")
   }
 
   async function copyBookingCode() {
@@ -424,13 +450,19 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
   }
 
   useEffect(() => {
-    if (!manageDialog || submitting) return
+    if ((!manageDialog && !alternativeDraft && !catalogOpen) || submitting) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setManageDialog(null)
+      if (event.key !== "Escape") return
+      if (catalogOpen) {
+        setCatalogOpen(false)
+        return
+      }
+      setManageDialog(null)
+      setAlternativeDraft(null)
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [manageDialog, submitting])
+  }, [manageDialog, alternativeDraft, catalogOpen, submitting])
 
   useEffect(() => {
     const checkedAt = availability?.checked_at
@@ -574,7 +606,8 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
         !active ||
         inFlight ||
         submitting ||
-        itemDraftChanged ||
+        draftHasChanges ||
+        catalogOpen ||
         document.visibilityState !== "visible"
       ) return
       inFlight = true
@@ -593,13 +626,13 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
           }
           return
         }
-        if (active && !submitting && !itemDraftChanged) {
+        if (active && !submitting && !draftHasChanges && !catalogOpen) {
           const latestPortal = body as unknown as PortalData
           setPortal(latestPortal)
           setPickupDate(latestPortal.requested_pickup_date ?? "")
           setReturnDate(latestPortal.requested_return_date ?? "")
           setDraftQty(buildDraftQuantities(latestPortal.lines ?? [], optionByKey))
-          setItemDraftChanged(false)
+          setCatalogOpen(false)
           if (latestPortal.transaction_tracking) {
             setAvailability(null)
           } else {
@@ -616,7 +649,7 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
               setAvailabilityRefreshError(
                 typeof availabilityBody.error === "string"
                   ? availabilityBody.error
-                  : "Pembaruan stok belum berhasil.",
+                  : "Stok belum dapat diperbarui.",
               )
             }
           }
@@ -639,7 +672,7 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
       window.clearInterval(interval)
       document.removeEventListener("visibilitychange", onVisibilityChange)
     }
-  }, [portal?.reference_code, itemDraftChanged, optionByKey, submitting])
+  }, [portal?.reference_code, draftHasChanges, catalogOpen, optionByKey, submitting])
 
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -722,8 +755,9 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
       clearPendingChangeKey()
       changeIdempotencyKeysRef.current.clear()
       await loadPortal()
-      setMessage("Permintaan berhasil dikirim. Perubahan hanya berlaku setelah ditinjau pengelola.")
+      setMessage("Permintaan berhasil dikirim. Perubahan hanya berlaku setelah disetujui admin.")
       setManageDialog(null)
+      setAlternativeDraft(null)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Permintaan perubahan gagal dikirim.")
     } finally {
@@ -733,17 +767,24 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
 
   async function requestScheduleChange(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!pickupDate || !returnDate || returnDate < pickupDate) {
+    if (!schedulePickupDate || !scheduleReturnDate || scheduleReturnDate < schedulePickupDate) {
       setError("Tanggal pengembalian harus sama dengan atau setelah tanggal pengambilan.")
       return
     }
-    if (pickupDate < new Date().toLocaleDateString("en-CA", { timeZone: portal?.business_timezone ?? "Asia/Jakarta" })) {
-      setError("Tanggal pengambilan tidak dapat berada di masa lalu.")
+    const businessToday = new Date().toLocaleDateString("en-CA", {
+      timeZone: portal?.business_timezone ?? "Asia/Jakarta",
+    })
+    if (!isValidSchedulePickupDate(
+      schedulePickupDate,
+      portal?.requested_pickup_date ?? null,
+      businessToday,
+    )) {
+      setError("Tanggal pengambilan baru tidak dapat berada di masa lalu. Tanggal booking yang sudah ada boleh dipertahankan.")
       return
     }
     await submitChange(
       "schedule_change",
-      { requested_pickup_date: pickupDate, requested_return_date: returnDate },
+      { requested_pickup_date: schedulePickupDate, requested_return_date: scheduleReturnDate },
       "Customer mengajukan perubahan periode rental.",
     )
   }
@@ -754,6 +795,8 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
       .filter(([, quantity]) => quantity > 0)
       .map(([key, quantity]) => ({ option: optionByKey.get(key), quantity }))
       .filter((entry): entry is { option: SmartBookingCatalogOption; quantity: number } => Boolean(entry.option))
+
+    if (!draftHasChanges) return
 
     if (selected.length < 1 || selected.length > MAX_CHANGE_LINES) {
       setError("Permintaan perubahan harus berisi 1–10 jenis item.")
@@ -785,7 +828,13 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
       .slice(0, 3)
   }
 
-  async function requestAlternative(line: PortalLine, option: SmartBookingCatalogOption) {
+  function requestAlternative(line: PortalLine, option: SmartBookingCatalogOption) {
+    setAlternativeDraft({ line, option })
+  }
+
+  async function confirmAlternativeRequest() {
+    if (!alternativeDraft) return
+    const { line, option } = alternativeDraft
     const quantity = Math.min(20, Math.max(1, Number(line.quantity) || 1))
     await submitChange(
       "alternative_interest",
@@ -830,19 +879,27 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
       else next[key] = nextQuantity
       return next
     })
-    setItemDraftChanged(true)
     setError(null)
   }
 
-  function addDraftOption() {
-    const option = optionByKey.get(newOptionKey)
+  function addDraftOption(optionKey: string) {
+    const option = optionByKey.get(optionKey)
     if (!option) return
     if (!draftQty[option.key] && Object.keys(draftQty).length >= MAX_CHANGE_LINES) {
       setError("Maksimal 10 jenis item dalam satu perubahan.")
       return
     }
     updateDraftQuantity(option.key, Math.min(20, (draftQty[option.key] ?? 0) + 1))
-    setNewOptionKey("")
+  }
+
+  function openScheduleDialog() {
+    if (!portal) return
+    // Keep the original pickup date independent from edits in the item dialog.
+    // This lets customers extend only the return date (e.g. 11–12 to 11–14).
+    setSchedulePickupDate(portal.requested_pickup_date ?? "")
+    setScheduleReturnDate(portal.requested_return_date ?? "")
+    setError(null)
+    setManageDialog("schedule")
   }
 
   const closed = portal ? ["cancelled", "expired", "fulfilled"].includes(portal.workflow_status) : true
@@ -856,6 +913,19 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
   const itemChangeOptions = hasRental
     ? options
     : options.filter((option) => option.kind === "sale")
+  const catalogCategories = [
+    "Semua",
+    ...Array.from(new Set(itemChangeOptions.map((option) => option.kategori_nama))).sort((a, b) => a.localeCompare(b, "id")),
+  ]
+  const normalizedCatalogSearch = catalogSearch.trim().toLocaleLowerCase("id-ID")
+  const filteredItemChangeOptions = itemChangeOptions.filter((option) => {
+    const matchesCategory = catalogCategory === "Semua" || option.kategori_nama === catalogCategory
+    const searchable = [option.barang_nama, option.varian_nama, option.kategori_nama, option.deskripsi]
+      .filter(Boolean)
+      .join(" ")
+      .toLocaleLowerCase("id-ID")
+    return matchesCategory && (!normalizedCatalogSearch || searchable.includes(normalizedCatalogSearch))
+  })
   const canEditItems = canEdit && itemChangeOptions.length > 0 && unresolvedLines.length === 0
   const hasAlternatives = portal?.lines.some((line) => alternativesForLine(line).length > 0) ?? false
   const draftOptions = Object.entries(draftQty)
@@ -903,9 +973,141 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
     portalLinePeriods(line),
   )
   const portalEstimate = portal?.lines.reduce((sum, line) => sum + portalLineEstimate(line), 0) ?? 0
-  const proposedScheduleEstimate = portal?.lines.reduce((sum, line) => {
-    return sum + calculateRentalEstimate(line.quantity, line.unit_price, portalLinePeriods(line, pickupDate, returnDate))
-  }, 0) ?? 0
+  // quote_total aggregates saved line snapshots and does not expand rentals by
+  // the active date range. Use the same period-aware total as the Detail tab.
+  const bookingTotal = Math.max(
+    0,
+    portal?.lines.length
+      ? (Number.isFinite(portalEstimate) ? portalEstimate : 0)
+      : (Number(portal?.quote_total ?? 0) || 0),
+  )
+  const dpAmount = portal?.dp_amount === null || portal?.dp_amount === undefined
+    ? null
+    : Math.max(0, Number(portal.dp_amount) || 0)
+  const dpPercent = dpAmount !== null && bookingTotal > 0
+    ? Math.min(100, Math.max(0, (dpAmount / bookingTotal) * 100))
+    : 0
+  const remainingEstimate = dpAmount === null ? null : Math.max(0, bookingTotal - dpAmount)
+  const adminHistoryNotices = [
+    ...(portal?.timeline ?? [])
+      .filter((event) => ["booking.status.ready_for_checkout", "booking.status.cancelled"].includes(event.type))
+      .map((event) => ({
+        id: event.type + ":" + event.occurred_at,
+        title: event.type === "booking.status.ready_for_checkout" ? "Konfirmasi booking" : "Pembatalan booking",
+        message: event.message ?? (event.type === "booking.status.ready_for_checkout"
+          ? "Booking Anda telah dikonfirmasi."
+          : "Booking Anda telah dibatalkan oleh admin."),
+        occurred_at: event.occurred_at,
+      })),
+    ...(portal?.change_requests ?? [])
+      .filter((change) => change.status === "applied" || change.status === "approved" || change.status === "rejected")
+      .map((change) => {
+        const eventType = change.status === "applied" ? "booking.change.applied" : change.status === "rejected" ? "booking.change.rejected" : "booking.change.approved"
+        const event = (portal?.timeline ?? []).find((entry) =>
+          entry.type === eventType && entry.occurred_at === change.resolved_at
+        )
+        return {
+          id: change.id,
+          title: requestTypeLabel(change.type) + " · " + requestStatusLabel(change.status),
+          message: change.public_resolution_note ?? event?.message ?? (
+            change.status === "applied"
+              ? "Permintaan Anda telah diterapkan oleh admin."
+              : change.status === "approved"
+                ? "Permintaan Anda telah disetujui oleh admin."
+                : "Permintaan Anda belum dapat disetujui oleh admin."
+          ),
+          occurred_at: change.resolved_at ?? change.created_at,
+        }
+      }),
+  ].sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at))
+  const historyTimeline = (portal?.timeline ?? []).filter((event) =>
+    !["booking.status.ready_for_checkout", "booking.status.cancelled", "booking.change.applied", "booking.change.approved", "booking.change.rejected"].includes(event.type)
+  )
+  const scheduleDatesValid = Boolean(
+    schedulePickupDate
+    && scheduleReturnDate
+    && scheduleReturnDate >= schedulePickupDate,
+  )
+  const businessToday = new Date().toLocaleDateString("en-CA", {
+    timeZone: portal?.business_timezone ?? "Asia/Jakarta",
+  })
+  const minimumSchedulePickupDate = getMinimumSchedulePickupDate(
+    portal?.requested_pickup_date ?? null,
+    businessToday,
+  )
+  const currentScheduleEstimate = portalEstimate
+  const proposedScheduleEstimate = scheduleDatesValid
+    ? portal?.lines.reduce((sum, line) => {
+      return sum + calculateRentalEstimate(
+        line.quantity,
+        line.unit_price,
+        portalLinePeriods(line, schedulePickupDate, scheduleReturnDate),
+      )
+    }, 0) ?? 0
+    : 0
+  const scheduleEstimateDelta = proposedScheduleEstimate - currentScheduleEstimate
+
+
+  const portalReceipt = useMemo<BookingReceipt | null>(() => {
+    if (!portal) return null
+    return {
+      reference_code: portal.reference_code,
+      access_code: null,
+      portal_link_url: null,
+      credential_requires_rotation: false,
+      workflow_status: portal.workflow_status,
+      total_estimate: portalEstimate,
+      currency_code: portal.currency_code,
+      customer_name: portal.customer_name,
+      // The authenticated portal projection intentionally does not expose phone
+      // or reusable access credentials. The shared receipt renderer omits blank phone.
+      customer_phone: "",
+      pickup_date: portal.requested_pickup_date,
+      return_date: portal.requested_return_date,
+      stay_duration_label: portalStayLabel,
+      created_at: portal.created_at,
+      lines: portal.lines.map((line) => {
+        const optionKey = optionKeyFromPortalLine(line)
+        const option = optionKey ? optionByKey.get(optionKey) : undefined
+        return {
+          id: line.line_id,
+          kind: line.kind,
+          name: line.name,
+          category: option?.kategori_nama ?? "",
+          variant: line.variant,
+          quantity: line.quantity,
+          price: line.unit_price,
+          normalPrice: line.normal_price,
+          discountPercent: line.discount_percent,
+          durationValue: option?.priceDurationValue ?? null,
+          durationUnit: option?.priceDurationUnit ?? null,
+        }
+      }),
+    }
+  }, [portal, portalEstimate, portalStayLabel, optionByKey])
+
+  useEffect(() => {
+    let active = true
+    if (!portalReceipt) return
+    void createBookingReceiptQr(window.location.origin + "/booking/portal")
+      .then((value) => { if (active) setReceiptQrDataUrl(value) })
+      .catch(() => { if (active) setReceiptQrDataUrl(null) })
+    return () => { active = false }
+  }, [portalReceipt])
+
+  async function downloadPortalReceipt(kind: "png" | "pdf") {
+    if (!portalReceipt || !receiptQrDataUrl || receiptExporting) return
+    setReceiptExporting(kind)
+    setError(null)
+    try {
+      const filename = "AKASHA-BOOKING-" + portalReceipt.reference_code.replace(/[^a-z0-9-]/gi, "-")
+      await exportBookingReceipt(portalReceipt, receiptQrDataUrl, kind, filename)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Bukti booking belum dapat diunduh.")
+    } finally {
+      setReceiptExporting(null)
+    }
+  }
 
   if (loading) {
     return (
@@ -918,10 +1120,10 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
   if (!portal) {
     return (
       <section className="mx-auto max-w-lg">
-        <div className="rounded-3xl border border-border/70 bg-card p-5 sm:p-7">
+        <div className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5">
           <span className="inline-flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary"><ShieldCheck className="size-5" /></span>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">Cek booking Anda</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">Masukkan kode akses pada bukti booking atau buka tautan pribadi Anda.</p>
+          <p className="mt-2 text-xs text-muted-foreground">Masukkan kode akses atau buka tautan pribadi.</p>
           <form onSubmit={login} className="mt-5 space-y-4">
             <label className="block space-y-1.5 text-sm">
               <span className="font-medium">Kode akses</span>
@@ -929,80 +1131,109 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
               <span className="block text-xs text-muted-foreground">Kode akses ada pada bukti booking Anda.</span>
             </label>
             {error && <p role="alert" className="rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
-            {message && <p className="rounded-xl bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">{message}</p>}
+            {message && <p className="rounded-xl bg-primary/10 p-3 text-sm text-primary">{message}</p>}
             <button type="submit" disabled={submitting} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50">
               {submitting ? <LoaderCircle className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />} Masuk ke portal
             </button>
           </form>
-          <p className="mt-4 text-xs leading-5 text-muted-foreground">Tidak perlu membuat akun. Jangan bagikan kode atau tautan pribadi ini.</p>
+          <p className="mt-4 text-xs leading-5 text-muted-foreground">Jaga kerahasiaan kode dan tautan pribadi Anda.</p>
         </div>
       </section>
     )
   }
 
   return (
-    <section className="space-y-5">
-      <header className="relative isolate overflow-hidden rounded-[2rem] bg-[#102f36] px-5 py-6 text-white shadow-xl shadow-slate-950/10 sm:px-8 sm:py-8">
-        <div aria-hidden="true" className="pointer-events-none absolute -top-24 right-[-3rem] -z-10 size-72 rounded-full border-[38px] border-white/[0.045]" />
-        <div aria-hidden="true" className="pointer-events-none absolute -right-12 -bottom-28 -z-10 size-72 rounded-full bg-emerald-300/[0.08] blur-2xl" />
-        <div className="flex items-start justify-between gap-4">
+    <section className="space-y-3">
+      <header className="relative isolate overflow-hidden rounded-2xl border border-border/70 bg-white px-4 py-4 shadow-sm dark:bg-[#111111] sm:px-5 sm:py-5">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-24 -z-10 size-56 rounded-full bg-primary/[0.07] blur-3xl" />
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.19em] text-emerald-200">
-              <ShieldCheck className="size-3.5" /> Akasha Outdoor · Portal Customer
+            <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
+              <ShieldCheck className="size-3.5" /> Akasha Outdoor
             </p>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">Halo, {portal.customer_name}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/70">
-              <span>Kode reservasi</span>
-              <span className="font-semibold tracking-wide text-white">{portal.reference_code}</span>
-              <button type="button" onClick={() => void copyBookingCode()} aria-label="Salin kode reservasi" className="grid size-7 place-items-center rounded-full border border-white/20 text-white/80 transition hover:bg-white/10">
+            <h1 className="mt-1.5 truncate text-xl font-semibold tracking-tight sm:text-2xl">Halo, {portal.customer_name}</h1>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+              <span>Booking</span>
+              <span className="font-semibold tracking-wide text-foreground">{portal.reference_code}</span>
+              <button type="button" onClick={() => void copyBookingCode()} aria-label="Salin kode reservasi" className="grid size-7 place-items-center rounded-full border border-border bg-background text-muted-foreground transition hover:text-primary">
                 <Clipboard className="size-3.5" />
               </button>
             </div>
           </div>
-          <button type="button" onClick={() => void logout()} disabled={submitting} aria-label="Keluar dari portal" className="grid size-10 shrink-0 place-items-center rounded-full border border-white/20 bg-white/[0.06] text-white/80 transition hover:bg-white/15 disabled:opacity-50">
+          <button type="button" onClick={() => void logout()} disabled={submitting} aria-label="Keluar dari portal" className="grid size-9 shrink-0 place-items-center rounded-full border border-border bg-background text-muted-foreground transition hover:text-primary disabled:opacity-50">
             <LogOut className="size-4" />
           </button>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-300/15 px-3 py-1.5 text-[11px] font-semibold text-emerald-100">
-            <span className="size-1.5 rounded-full bg-emerald-300" /> {statusLabel(portal.workflow_status)}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary">
+            <span className="size-1.5 rounded-full bg-primary" /> {statusLabel(portal.workflow_status)}
           </span>
-          {hasPendingChange ? <span className="rounded-full border border-amber-200/20 bg-amber-200/10 px-3 py-1.5 text-[11px] font-semibold text-amber-100">Ada permintaan ditinjau</span> : null}
+          {hasPendingChange ? <span className="rounded-full bg-muted px-3 py-1.5 text-[11px] font-semibold text-muted-foreground">Perubahan ditinjau</span> : null}
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-3.5">
-            <p className="text-[10px] text-white/60">Pengambilan</p>
-            <p className="mt-1.5 text-sm font-semibold text-white">{formatPortalDate(portal.requested_pickup_date)}</p>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="rounded-xl bg-muted/55 px-3 py-2.5">
+            <p className="text-[10px] text-muted-foreground">Pengambilan</p>
+            <p className="mt-1 text-xs font-semibold">{formatPortalDate(portal.requested_pickup_date)}</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-3.5">
-            <p className="text-[10px] text-white/60">Pengembalian</p>
-            <p className="mt-1.5 text-sm font-semibold text-white">{formatPortalDate(portal.requested_return_date)}</p>
+          <div className="rounded-xl bg-muted/55 px-3 py-2.5">
+            <p className="text-[10px] text-muted-foreground">Pengembalian</p>
+            <p className="mt-1 text-xs font-semibold">{formatPortalDate(portal.requested_return_date)}</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-3.5">
-            <p className="text-[10px] text-white/60">Estimasi biaya</p>
-            <p className="mt-1.5 text-sm font-semibold text-white">{formatRupiah(portalEstimate)}</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-3.5">
-            <p className="text-[10px] text-white/60">Pilihan barang</p>
-            <p className="mt-1.5 text-sm font-semibold text-white">{portal.lines.length} jenis · {portal.lines.reduce((sum, line) => sum + line.quantity, 0)} unit</p>
+          <div className="rounded-xl bg-muted/55 px-3 py-2.5">
+            <p className="text-[10px] text-muted-foreground">Barang</p>
+            <p className="mt-1 text-xs font-semibold">{portal.lines.length} jenis · {portal.lines.reduce((sum, line) => sum + line.quantity, 0)} unit</p>
           </div>
         </div>
-        {portalStayLabel ? <p className="mt-4 text-[11px] text-white/65">Durasi pilihan: <strong className="text-white">{portalStayLabel}</strong></p> : null}
+
+        <section aria-label="Informasi DP booking" className="mt-3 rounded-2xl border border-primary/25 bg-primary/[0.055] p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Down Payment (DP)</p>
+              {dpAmount === null ? (
+                <p className="mt-1 text-sm font-semibold">Belum dicatat</p>
+              ) : dpAmount === 0 ? (
+                <p className="mt-1 text-sm font-semibold">Tanpa DP</p>
+              ) : (
+                <>
+                  <p className="mt-1 text-lg font-bold leading-tight tabular-nums">{formatRupiah(dpAmount)}</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-primary">{new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 }).format(dpPercent)}% dari total booking</p>
+                </>
+              )}
+            </div>
+            <div className="shrink-0 text-right">
+              <p className="text-[10px] text-muted-foreground">Total booking</p>
+              <p className="mt-1 text-sm font-semibold tabular-nums">{formatRupiah(bookingTotal)}</p>
+            </div>
+          </div>
+          {dpAmount !== null && dpAmount > 0 && bookingTotal > 0 ? (
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-primary/15" role="progressbar" aria-label="Persentase DP" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(dpPercent)}>
+              <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: dpPercent + "%" }} />
+            </div>
+          ) : null}
+          {remainingEstimate !== null ? (
+            <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-primary/15 pt-2.5">
+              <span className="text-[11px] text-muted-foreground">Sisa estimasi</span>
+              <strong className="text-sm tabular-nums">{formatRupiah(remainingEstimate)}</strong>
+            </div>
+          ) : null}
+        </section>
+        {portalStayLabel ? <p className="mt-2 text-[10px] text-muted-foreground">Durasi {portalStayLabel}</p> : null}
       </header>
 
       <nav aria-label="Navigasi portal booking" className="sticky top-16 z-30 -mx-1 rounded-2xl border border-border/70 bg-background/95 p-1.5 shadow-sm backdrop-blur-xl">
-        <div role="tablist" aria-label="Bagian portal customer" className="flex min-w-0 gap-1 overflow-x-auto">
+        <div role="tablist" aria-label="Bagian portal customer" className="grid grid-cols-6 gap-1.5 md:flex md:min-w-0 md:gap-1">
           {([
             { id: "overview", label: "Ringkasan", icon: LayoutDashboard },
             { id: "detail", label: "Detail", icon: FileText },
             { id: "tracking", label: portal.transaction_tracking ? "Tracking" : "Ketersediaan", icon: Activity },
             { id: "manage", label: "Kelola", icon: SlidersHorizontal },
             { id: "history", label: "Riwayat", icon: History },
-          ] as const).map((tab) => {
+          ] as const).map((tab, index) => {
             const Icon = tab.icon
             const selected = activeTab === tab.id
+            const mobilePosition = index < 3 ? "col-span-2" : index === 3 ? "col-span-2 col-start-2" : "col-span-2 col-start-4"
             return (
               <button
                 key={tab.id}
@@ -1013,11 +1244,11 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
                 aria-controls="portal-tab-panel"
                 onClick={() => { setActiveTab(tab.id); setManageDialog(null) }}
                 disabled={submitting}
-                className={"inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl px-3.5 text-xs font-semibold transition sm:flex-1 " + (selected ? "bg-[#173c43] text-white shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground")}
+                className={mobilePosition + " inline-flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[10px] font-semibold leading-tight transition md:h-10 md:min-h-0 md:flex-1 md:flex-row md:gap-2 md:px-3.5 md:py-0 md:text-xs " + (selected ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground")}
               >
-                <Icon className="size-3.5" />
-                {tab.label}
-                {tab.id === "manage" && hasPendingChange ? <span className={"size-1.5 rounded-full " + (selected ? "bg-amber-200" : "bg-amber-500")} /> : null}
+                <Icon className="size-4 shrink-0 md:size-3.5" />
+                <span className="text-center">{tab.label}</span>
+                {tab.id === "manage" && hasPendingChange ? <span className={"size-1.5 rounded-full " + (selected ? "bg-primary-foreground" : "bg-primary")} /> : null}
               </button>
             )
           })}
@@ -1025,104 +1256,98 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
       </nav>
 
       {error ? <p role="alert" className="flex items-start gap-2 rounded-2xl border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"><CircleAlert className="mt-0.5 size-4 shrink-0" />{error}</p> : null}
-      {message ? <p role="status" className="flex items-start gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-3 text-sm text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="mt-0.5 size-4 shrink-0" />{message}</p> : null}
+      {message ? <p role="status" className="flex items-start gap-2 rounded-2xl border border-primary/20 bg-primary/[0.06] p-3 text-sm text-primary"><CheckCircle2 className="mt-0.5 size-4 shrink-0" />{message}</p> : null}
       {hasPendingChange && !closed ? (
-        <p className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-3 text-sm leading-5 text-amber-800 dark:text-amber-200">
-          Permintaan perubahan Anda sedang ditinjau pengelola. Anda dapat memantau hasilnya melalui tab Riwayat.
+        <p className="rounded-2xl border border-primary/20 bg-primary/[0.05] p-3 text-xs text-primary">
+          Perubahan sedang ditinjau.
         </p>
       ) : null}
 
       <div id="portal-tab-panel" role="tabpanel" aria-labelledby={"portal-tab-" + activeTab} className="min-w-0">
         {activeTab === "overview" ? (
-          <div className="space-y-4">
-            <div className="grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
-              <section className="rounded-3xl border border-border/70 bg-card p-5 sm:p-6">
-                <div className="flex items-center gap-2 text-primary"><Activity className="size-4" /><p className="text-[10px] font-bold uppercase tracking-[0.16em]">Status terkini</p></div>
-                <h2 className="mt-3 text-lg font-semibold tracking-tight">
-                  {portal.transaction_tracking
-                    ? "Pesanan Anda sudah masuk tahap operasional"
-                    : closed
-                      ? "Booking ini telah selesai"
-                      : hasPendingChange
-                        ? "Permintaan Anda sedang ditinjau"
-                        : portal.workflow_status === "customer_action_required"
-                          ? "Ada hal yang perlu Anda tindaklanjuti"
-                          : "Booking Anda telah kami terima"}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {portal.transaction_tracking
-                    ? "Pantau proses penyiapan, serah-terima, dan pengembalian barang pada bagian Tracking."
-                    : closed
-                      ? "Anda masih dapat melihat detail dan riwayat booking ini kapan saja."
-                      : hasPendingChange
-                        ? "Pengelola akan memperbarui hasil peninjauan pada portal ini."
-                        : "Kami akan memperbarui status booking setelah pengelola melakukan pemeriksaan."}
-                </p>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => setActiveTab(portal.transaction_tracking ? "tracking" : "detail")} className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground">
-                    {portal.transaction_tracking ? "Lihat tracking" : "Lihat detail booking"} <Package className="size-3.5" />
-                  </button>
-                  <button type="button" onClick={() => setActiveTab("history")} className="inline-flex h-10 items-center gap-2 rounded-full border border-border px-4 text-xs font-semibold">
-                    Riwayat aktivitas <History className="size-3.5" />
-                  </button>
-                </div>
-              </section>
+          <div className="space-y-3">
+            {!closed && canEdit ? (
+              <button type="button" onClick={() => setActiveTab("manage")} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/[0.055] px-3.5 py-3 text-left">
+                <span>
+                  <span className="block text-xs font-semibold">Ubah barang atau jadwal</span>
+                  <span className="mt-0.5 block text-[10px] text-muted-foreground">Kelola booking Anda</span>
+                </span>
+                <SlidersHorizontal className="size-4 shrink-0 text-primary" />
+              </button>
+            ) : null}
 
-              <section className="rounded-3xl border border-border/70 bg-card p-5 sm:p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Jadwal pilihan</p><h2 className="mt-1 text-base font-semibold">Rencana Anda</h2></div>
-                  <CalendarDays className="size-5 text-primary" />
-                </div>
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-3"><span className="text-xs text-muted-foreground">Pengambilan</span><strong className="text-sm">{formatPortalDate(portal.requested_pickup_date)}</strong></div>
-                  <div className="flex items-center justify-between gap-3"><span className="text-xs text-muted-foreground">Pengembalian</span><strong className="text-sm">{formatPortalDate(portal.requested_return_date)}</strong></div>
-                  {portalStayLabel ? <p className="rounded-xl bg-muted/45 p-3 text-xs font-medium">Durasi {portalStayLabel}</p> : null}
-                </div>
-              </section>
-            </div>
-
-            <section className="rounded-3xl border border-border/70 bg-card p-5 sm:p-6">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Pilihan Anda</p><h2 className="mt-1 text-base font-semibold">Ringkasan barang</h2></div>
-                <button type="button" onClick={() => setActiveTab("detail")} className="text-xs font-semibold text-primary">Lihat semua</button>
+            <section className="rounded-2xl border border-border/70 bg-card p-3.5">
+              <div className="mb-2.5 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold">Pilihan barang</h2>
+                <button type="button" onClick={() => setActiveTab("detail")} className="text-[11px] font-semibold text-primary">Lihat semua</button>
               </div>
               <div className="divide-y divide-border/60">
                 {portal.lines.slice(0, 3).map((line) => (
-                  <div key={line.line_id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                    <div className="min-w-0"><p className="truncate text-sm font-semibold">{line.name}{line.variant ? " · " + line.variant : ""}</p><p className="mt-1 text-[11px] text-muted-foreground">{line.kind === "rental" ? "Sewa" : "Beli"} · {line.quantity} unit</p></div>
-                    <strong className="shrink-0 text-sm">{formatRupiah(portalLineEstimate(line))}</strong>
+                  <div key={line.line_id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold">{line.name}{line.variant ? " · " + line.variant : ""}</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">{line.kind === "rental" ? "Sewa" : "Beli"} · {line.quantity} unit</p>
+                    </div>
+                    <strong className="shrink-0 text-xs tabular-nums">{formatRupiah(portalLineEstimate(line))}</strong>
                   </div>
                 ))}
               </div>
-              {portal.lines.length > 3 ? <p className="mt-3 text-[11px] text-muted-foreground">+{portal.lines.length - 3} jenis barang lainnya</p> : null}
-              <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-4"><span className="text-xs text-muted-foreground">Estimasi keseluruhan</span><strong className="text-lg text-primary">{formatRupiah(portalEstimate)}</strong></div>
+              {portal.lines.length > 3 ? <p className="mt-2 text-[10px] text-muted-foreground">+{portal.lines.length - 3} jenis lainnya</p> : null}
+              <div className="mt-2.5 flex items-center justify-between border-t border-border/60 pt-2.5">
+                <span className="text-[11px] text-muted-foreground">Estimasi total</span>
+                <strong className="text-sm text-primary">{formatRupiah(portalEstimate)}</strong>
+              </div>
             </section>
 
-            <section className="rounded-3xl border border-border/70 bg-card p-5 sm:p-6">
-              <div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Aktivitas</p><h2 className="mt-1 text-base font-semibold">Pembaruan terbaru</h2></div><button type="button" onClick={() => setActiveTab("history")} className="text-xs font-semibold text-primary">Semua riwayat</button></div>
-              {portal.timeline.slice(0, 3).length ? (
-                <ol className="space-y-3">
-                  {portal.timeline.slice(0, 3).map((event, index) => (
-                    <li key={index} className="flex gap-3"><span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" /><div className="min-w-0"><p className="text-xs leading-5">{event.message ?? statusLabel(event.type)}</p><p className="mt-1 text-[10px] text-muted-foreground">{new Date(event.occurred_at).toLocaleString("id-ID", { timeZone: portal.business_timezone || "Asia/Jakarta" })}</p></div></li>
+            <section className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/70 bg-card p-3.5">
+              <div>
+                <p className="text-xs font-semibold">Bukti booking</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">Simpan sebagai gambar atau PDF</p>
+              </div>
+              <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:min-w-[224px]">
+                <button type="button" onClick={() => void downloadPortalReceipt("png")} disabled={!receiptQrDataUrl || receiptExporting !== null} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-border px-3 text-[11px] font-semibold disabled:opacity-50">
+                  <Download className="size-3.5" /> {receiptExporting === "png" ? "Menyiapkan..." : "Unduh PNG"}
+                </button>
+                <button type="button" onClick={() => void downloadPortalReceipt("pdf")} disabled={!receiptQrDataUrl || receiptExporting !== null} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground disabled:opacity-50">
+                  <Download className="size-3.5" /> {receiptExporting === "pdf" ? "Menyiapkan..." : "Unduh PDF"}
+                </button>
+              </div>
+            </section>
+
+            {historyTimeline.length > 0 ? (
+              <section className="rounded-2xl border border-border/70 bg-card p-3.5">
+                <div className="mb-2.5 flex items-center justify-between gap-3">
+                  <h2 className="text-xs font-semibold">Pembaruan terbaru</h2>
+                  <button type="button" onClick={() => setActiveTab("history")} className="text-[10px] font-semibold text-primary">Riwayat</button>
+                </div>
+                <ol className="space-y-2.5">
+                  {historyTimeline.slice(0, 2).map((event, index) => (
+                    <li key={index} className="flex gap-2.5">
+                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <div className="min-w-0">
+                        <p className="text-[11px] leading-4">{event.message ?? statusLabel(event.type)}</p>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">{new Date(event.occurred_at).toLocaleDateString("id-ID", { timeZone: portal.business_timezone || "Asia/Jakarta" })}</p>
+                      </div>
+                    </li>
                   ))}
                 </ol>
-              ) : <p className="text-sm text-muted-foreground">Belum ada pembaruan tambahan.</p>}
-            </section>
+              </section>
+            ) : null}
           </div>
         ) : null}
 
               {activeTab === "tracking" && portal.transaction_tracking ? (
-        <section className="rounded-3xl border border-emerald-500/25 bg-card p-5 sm:p-6">
+        <section className="rounded-2xl border border-primary/20 bg-card p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-700 dark:text-emerald-300">Perjalanan pesanan</p>
-              <h2 className="mt-1 text-base font-semibold">Booking telah diproses secara operasional</h2>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-primary">Perjalanan pesanan</p>
+              <h2 className="mt-1 text-base font-semibold">Pesanan diproses</h2>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
                 Mulai diproses {formatPortalDateTime(portal.transaction_tracking.converted_at, portal.business_timezone)}.
               </p>
             </div>
-            <span className="rounded-full bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-              Transaksi tercatat
+            <span className="rounded-full bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary">
+              Diproses
             </span>
           </div>
 
@@ -1166,7 +1391,7 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
                   <p>Proses pengembalian dimulai {formatPortalDateTime(portal.transaction_tracking.rental.actual_return_started_at, portal.business_timezone)}.</p>
                 ) : null}
                 {portal.transaction_tracking.rental.actual_return_completed_at ? (
-                  <p className="font-medium text-emerald-700 dark:text-emerald-300">
+                  <p className="font-medium text-primary">
                     Pengembalian selesai {formatPortalDateTime(portal.transaction_tracking.rental.actual_return_completed_at, portal.business_timezone)}.
                   </p>
                 ) : portal.transaction_tracking.rental.tolerance_deadline ? (
@@ -1183,7 +1408,7 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {line.assigned_unit_count > 0 ? (
-                        <span className="text-[10px] text-muted-foreground">{line.assigned_unit_count} unit tercatat pada proses operasional</span>
+                        <span className="text-[10px] text-muted-foreground">{line.assigned_unit_count} unit disiapkan</span>
                       ) : null}
                       <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold">
                         {rentalProgressLabel(line.progress_status)}
@@ -1197,13 +1422,13 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
                 <strong className="text-sm">{formatRupiah(portal.transaction_tracking.rental.total_amount)}</strong>
               </div>
               <p className="mt-2 text-[10px] leading-5 text-muted-foreground">
-                Kami akan memperbarui informasi saat barang disiapkan, diserahkan, dan dikembalikan.
+                Status diperbarui di portal ini.
               </p>
             </div>
           ) : null}
 
           {portal.transaction_tracking.sale ? (
-            <div className="mt-3 rounded-2xl border border-border/70 p-4">
+            <div className="mt-3 rounded-2xl border border-border/70 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pembelian</p>
@@ -1236,12 +1461,12 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
           ) : null}
 
           <p className="mt-3 text-[10px] leading-5 text-muted-foreground">
-            Perkembangan pesanan akan diperbarui di portal ini. Hubungi pengelola apabila Anda membutuhkan bantuan.
+            Status pesanan diperbarui di portal.
           </p>
         </section>
       ) : null}
         {activeTab === "detail" && (
-      <section className="rounded-3xl border border-border/70 bg-card p-5 sm:p-6">
+      <section className="rounded-2xl border border-border/70 bg-card p-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-base font-semibold">Rincian booking</h2>
           <button
@@ -1252,8 +1477,8 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
                 else return loadAvailability()
               }).catch((cause) => setError(cause instanceof Error ? cause.message : "Gagal memuat ulang."))
             }}
-            disabled={submitting || itemDraftChanged}
-            title={itemDraftChanged ? "Kirim atau batalkan perubahan sebelum memperbarui data." : "Perbarui status booking"}
+            disabled={submitting || draftHasChanges}
+            title={draftHasChanges ? "Kirim atau batalkan perubahan sebelum memperbarui data." : "Perbarui status booking"}
             className="inline-flex h-9 items-center gap-2 rounded-full border border-border px-3 text-xs font-semibold disabled:opacity-50"
           >
             <RefreshCw className="size-3.5" /> Perbarui
@@ -1266,7 +1491,7 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
                 <p className="text-sm font-medium">{line.name}{line.variant ? " · " + line.variant : ""}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{line.kind === "rental" ? "Rental · " + (portalStayLabel ?? "periode belum ditentukan") + " · " + portalLinePeriods(line) + " periode" : "Pembelian · sekali beli"} · {line.quantity} unit</p>
                 {line.kind === "rental" ? <p className="mt-1 text-[10px] text-muted-foreground">{line.quantity} unit × {portalLinePeriods(line)} periode × {formatRupiah(line.unit_price)}</p> : null}
-                {line.discount_percent > 0 && <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">Promo {line.discount_percent}% · hemat {formatRupiah(line.discount_amount * portalLinePeriods(line))}</p>}
+                {line.discount_percent > 0 && <p className="mt-1 text-xs text-primary">Promo {line.discount_percent}% · hemat {formatRupiah(line.discount_amount * portalLinePeriods(line))}</p>}
               </div>
               <div className="shrink-0 text-right">
                 {line.discount_percent > 0 && <p className="text-xs text-muted-foreground line-through">{formatRupiah(line.normal_price * line.quantity * portalLinePeriods(line))}</p>}
@@ -1275,19 +1500,49 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
             </div>
           ))}
         </div>
-        <p className="mt-3 border-t border-border/60 pt-3 text-xs leading-5 text-muted-foreground">
-          Estimasi mengikuti tanggal yang Anda pilih. Nilai akhir akan dikonfirmasi pengelola berdasarkan waktu pengambilan dan pengembalian aktual.
-        </p>
+        <div className="mt-3 rounded-2xl border border-primary/25 bg-primary/[0.045] p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-medium text-muted-foreground">Total harga booking</span>
+            <strong className="text-base font-bold tabular-nums text-primary">{formatRupiah(bookingTotal)}</strong>
+          </div>
+          {dpAmount !== null ? (
+            <div className="mt-2 space-y-1.5 border-t border-primary/15 pt-2 text-xs">
+              <div className="flex items-center justify-between gap-3 text-muted-foreground">
+                <span>DP tercatat</span>
+                <strong className="font-semibold text-foreground">{formatRupiah(dpAmount)}</strong>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Sisa estimasi setelah DP</span>
+                <strong className="font-semibold tabular-nums">{formatRupiah(remainingEstimate ?? bookingTotal)}</strong>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-1 text-[10px] leading-4 text-muted-foreground">Nominal DP belum tercatat pada booking ini.</p>
+          )}
+        </div>
       </section>
       )}
 
         {activeTab === "manage" ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
+            {!closed ? (
+              <aside aria-label="Ketentuan perubahan booking" className="rounded-2xl border border-primary/35 bg-primary/[0.075] p-3.5 sm:p-4">
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary"><ShieldCheck className="size-4" /></span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-foreground">Perubahan booking perlu persetujuan admin</p>
+                    <p className="mt-1.5 text-xs leading-5 text-foreground/90">
+                      Setiap pengajuan perubahan barang, jumlah, atau jadwal belum langsung mengubah booking Anda. Admin akan meninjau sesuai kebijakan dan ketersediaan operasional. Perubahan berlaku setelah disetujui.
+                    </p>
+                  </div>
+                </div>
+              </aside>
+            ) : null}
             {!closed && !hasPendingChange && hasAlternatives && (
-        <section className="rounded-3xl border border-border/70 bg-card p-5 sm:p-6">
+        <section className="rounded-2xl border border-border/70 bg-card p-4">
           <h2 className="text-base font-semibold">Alternatif sejenis</h2>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Beberapa pilihan lain dari kategori yang sama. Ketertarikan Anda akan dikirim sebagai permintaan untuk ditinjau pengelola, bukan mengganti item secara otomatis.
+            Ajukan alternatif barang untuk ditinjau admin.
           </p>
           <div className="mt-3 space-y-3">
             {portal.lines.map((line) => {
@@ -1316,41 +1571,49 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
         </section>
       )}
                   {canEdit && unresolvedLines.length > 0 && (
-        <p className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-3 text-sm leading-5 text-amber-800 dark:text-amber-200">
-          Sebagian item pada booking ini sudah tidak tersedia dalam katalog publik, sehingga perubahan daftar barang tidak dapat diajukan dari portal. Hubungi pengelola untuk bantuan.
+        <p className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-2.5 text-xs text-amber-800 dark:text-amber-200">
+          Sebagian barang perlu bantuan admin.
         </p>
       )}
             {hasPendingChange ? (
-              <div className="rounded-3xl border border-amber-500/25 bg-amber-500/[0.05] p-5">
-                <h2 className="text-sm font-semibold">Permintaan sedang ditinjau</h2>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">Tunggu hasil dari pengelola sebelum mengajukan perubahan lainnya.</p>
+              <div className="rounded-2xl border border-primary/20 bg-primary/[0.05] p-3">
+                <p className="text-xs font-semibold text-primary">Permintaan sedang ditinjau.</p>
               </div>
             ) : !canEdit ? (
-              <div className="rounded-3xl border border-border/70 bg-card p-5"><h2 className="text-sm font-semibold">Pengelolaan booking ditutup</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Booking yang sudah selesai atau dibatalkan tidak dapat diubah kembali.</p></div>
+              <div className="rounded-2xl border border-border/70 bg-card p-3"><p className="text-xs font-semibold">Booking tidak dapat diubah kembali.</p></div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <article className="rounded-3xl border border-border/70 bg-card p-5">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Package className="size-5" /></div>
-                  <h2 className="mt-3 text-sm font-semibold">Ubah pilihan barang</h2>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">Sesuaikan jenis atau jumlah barang sesuai kebutuhan. Perubahan akan ditinjau pengelola.</p>
-                  <button type="button" onClick={() => setManageDialog("items")} disabled={!canEditItems} className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground disabled:opacity-45">
-                    Atur barang <Package className="size-3.5" />
+              <div className="space-y-2">
+                <article className="flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/[0.035] p-3">
+                  <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Package className="size-4.5" /></div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-xs font-semibold">Ubah atau tambah barang</h2>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">Atur barang dan jumlah.</p>
+                  </div>
+                  <button type="button" onClick={openItemsDialog} disabled={!canEditItems} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground disabled:opacity-45">
+                    Atur <Package className="size-3.5" />
                   </button>
-                  {!canEditItems ? <p className="mt-2 text-[10px] text-muted-foreground">Hubungi pengelola untuk bantuan perubahan barang.</p> : null}
                 </article>
                 {hasRental ? (
-                  <article className="rounded-3xl border border-border/70 bg-card p-5">
-                    <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary"><CalendarDays className="size-5" /></div>
-                    <h2 className="mt-3 text-sm font-semibold">Ubah jadwal sewa</h2>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">Ajukan tanggal pengambilan atau pengembalian yang baru.</p>
-                    <button type="button" onClick={() => setManageDialog("schedule")} className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-border px-4 text-xs font-semibold">Atur jadwal <CalendarDays className="size-3.5" /></button>
+                  <article className="flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/[0.035] p-3">
+                    <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><CalendarDays className="size-4.5" /></div>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-xs font-semibold">Ubah jadwal sewa</h2>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">Pilih tanggal baru.</p>
+                    </div>
+                    <button type="button" onClick={openScheduleDialog} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground">
+                      Atur <CalendarDays className="size-3.5" />
+                    </button>
                   </article>
                 ) : null}
-                <article className="rounded-3xl border border-destructive/20 bg-card p-5">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-destructive/10 text-destructive"><CircleAlert className="size-5" /></div>
-                  <h2 className="mt-3 text-sm font-semibold">Pembatalan booking</h2>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">Kirim permintaan pembatalan kepada pengelola untuk ditinjau.</p>
-                  <button type="button" onClick={() => void requestCancellation()} disabled={submitting} className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-full border border-destructive/30 text-xs font-semibold text-destructive disabled:opacity-50">Ajukan pembatalan</button>
+                <article className="flex items-center gap-3 rounded-2xl border border-destructive/20 bg-card p-3">
+                  <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-destructive/10 text-destructive"><CircleAlert className="size-4" /></div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-xs font-semibold">Pembatalan booking</h2>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">Ajukan pembatalan.</p>
+                  </div>
+                  <button type="button" onClick={() => void requestCancellation()} disabled={submitting} className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-destructive/30 px-3 text-[11px] font-semibold text-destructive disabled:opacity-50">
+                    Ajukan
+                  </button>
                 </article>
               </div>
             )}
@@ -1358,35 +1621,67 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
         ) : null}
 
         {activeTab === "history" && (
-      <section className="rounded-3xl border border-border/70 bg-card p-5 sm:p-6">
-        <h2 className="text-base font-semibold">Riwayat booking</h2>
-        {portal.change_requests.length > 0 && (
-          <div className="mt-3 space-y-2">
-            {portal.change_requests.map((change) => (
-              <div key={change.id} className="rounded-xl bg-muted/45 p-3 text-xs">
-                <div className="flex items-center justify-between gap-3">
-                  <strong>{requestTypeLabel(change.type)}</strong>
-                  <span className="text-muted-foreground">{requestStatusLabel(change.status)}</span>
+          <section className="rounded-2xl border border-border/70 bg-card p-4">
+            <h2 className="text-sm font-semibold">Riwayat booking</h2>
+
+            {adminHistoryNotices.length > 0 ? (
+              <section aria-label="Pesan dari admin" className="mt-3 rounded-2xl border border-primary/25 bg-primary/[0.045] p-3.5">
+                <div className="mb-2 flex items-center gap-2 text-primary">
+                  <ShieldCheck className="size-4" />
+                  <h3 className="text-xs font-semibold">Pesan dari admin</h3>
                 </div>
-                {change.reason && <p className="mt-1 text-muted-foreground">{change.reason}</p>}
-                {change.public_resolution_note && <p className="mt-2 text-foreground">{change.public_resolution_note}</p>}
+                <div className="space-y-3">
+                  {adminHistoryNotices.map((notice) => (
+                    <article key={notice.id} className="border-t border-primary/15 pt-2.5 first:border-0 first:pt-0">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[11px] font-semibold">{notice.title}</p>
+                        <time className="text-[10px] text-muted-foreground">
+                          {new Date(notice.occurred_at).toLocaleString("id-ID", { timeZone: portal.business_timezone || "Asia/Jakarta" })}
+                        </time>
+                      </div>
+                      <p className="mt-1.5 text-xs leading-5 text-foreground/85">{notice.message}</p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {portal.change_requests.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {portal.change_requests.map((change) => (
+                  <div key={change.id} className="rounded-xl bg-muted/45 p-3 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <strong>{requestTypeLabel(change.type)}</strong>
+                      <span className="text-muted-foreground">{requestStatusLabel(change.status)}</span>
+                    </div>
+                    {change.reason ? <p className="mt-1 text-muted-foreground">{change.reason}</p> : null}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            ) : null}
+
+            <div className="mt-4 border-t border-border/60 pt-3">
+              <h3 className="text-xs font-semibold">Aktivitas booking</h3>
+              {historyTimeline.length > 0 ? (
+                <ol className="mt-3 space-y-3 border-l border-border pl-4">
+                  {historyTimeline.map((event, index) => (
+                    <li key={index} className="relative">
+                      <span className="absolute -left-[21px] top-1.5 size-2 rounded-full bg-primary" />
+                      <p className="text-xs leading-5">{event.message ?? statusLabel(event.type)}</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        {new Date(event.occurred_at).toLocaleString("id-ID", { timeZone: portal.business_timezone || "Asia/Jakarta" })}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="mt-2 text-[11px] text-muted-foreground">Belum ada aktivitas lainnya.</p>
+              )}
+            </div>
+          </section>
         )}
-        <ol className="mt-4 space-y-3 border-l border-border pl-4">
-          {portal.timeline.map((event, index) => (
-            <li key={index} className="relative">
-              <span className="absolute -left-[21px] top-1.5 size-2 rounded-full bg-primary" />
-              <p className="text-sm leading-5">{event.message ?? statusLabel(event.type)}</p>
-              <p className="mt-1 text-[10px] text-muted-foreground">{new Date(event.occurred_at).toLocaleString("id-ID", { timeZone: portal.business_timezone || "Asia/Jakarta" })}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-      )}
               {activeTab === "tracking" && !portal.transaction_tracking && (
-      <section className="rounded-3xl border border-border/70 bg-card p-5 sm:p-6">
+      <section className="rounded-2xl border border-border/70 bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-base font-semibold">Ketersediaan saat ini</h2>
@@ -1404,13 +1699,12 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
         </div>
         {!availability ? (
           <div className="mt-3 space-y-3">
-            <p className="text-sm text-muted-foreground">Informasi stok belum dapat dimuat. Booking Anda tetap tersimpan.</p>
-            <p className="text-xs text-muted-foreground">Gunakan tombol perbarui stok untuk mencoba lagi.</p>
+            <p className="text-xs text-muted-foreground">Stok belum tersedia. Perbarui untuk mencoba lagi.</p>
           </div>
         ) : (
           <>
-            <div className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">
-              {availability.customer_notice ?? "Informasi ketersediaan ini mengikuti pemeriksaan terakhir. Barang belum dipesan secara eksklusif dan ketersediaannya dapat berubah sebelum jadwal pengambilan."}
+            <div className="mt-3 rounded-xl border border-primary/20 bg-primary/[0.045] p-2.5 text-[11px] text-muted-foreground">
+              Stok dapat berubah sebelum checkout.
             </div>
             {availabilityRefreshError ? (
               <p role="status" className="text-[11px] leading-5 text-amber-700 dark:text-amber-300">
@@ -1419,16 +1713,16 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
             ) : null}
             {availabilityIsStale ? (
               <p role="status" className="rounded-xl border border-amber-500/25 bg-amber-500/[0.04] p-2.5 text-[11px] text-amber-800 dark:text-amber-200">
-                Informasi stok mungkin sudah usang. Perbarui sebelum mengambil keputusan.
+                Data stok perlu diperbarui.
               </p>
             ) : null}
             {availability.lines.some((line) => isAvailabilityShortage(line.status)) ? (
               <p className="rounded-xl border border-destructive/25 bg-destructive/[0.04] p-2.5 text-xs leading-5 text-destructive">
-                Sebagian barang belum terlihat mencukupi pada pemeriksaan terakhir. Hubungi pengelola untuk opsi lain; stok akan diperiksa kembali saat transaksi.
+                Sebagian barang berpotensi tidak mencukupi.
               </p>
             ) : availability.lines.some((line) => isAvailabilityConditional(line.status)) ? (
               <p className="rounded-xl border border-amber-500/25 bg-amber-500/[0.04] p-2.5 text-xs leading-5 text-amber-800 dark:text-amber-200">
-                Sebagian barang bergantung pada varian lain atau potensi pengembalian dan belum dapat dijanjikan tersedia.
+                Sebagian stok bergantung pada pengembalian atau varian lain.
               </p>
             ) : null}
             <div className="mt-3 divide-y divide-border/60">
@@ -1466,9 +1760,7 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
                 </div>
               ))}
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Perkiraan ketersediaan mempertimbangkan toleransi pengembalian {availability.return_tolerance_hours} jam. Barang yang masih dalam perjalanan kembali belum dihitung sebagai barang siap.
-            </p>
+            <p className="mt-2 text-[10px] text-muted-foreground">Stok final diperiksa saat checkout.</p>
           </>
         )}
       </section>
@@ -1477,30 +1769,63 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
 
       {activeTab === "manage" && manageDialog === "items" && canEditItems ? (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !submitting) setManageDialog(null) }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="portal-items-dialog-title" className="max-h-[94dvh] w-full max-w-2xl overflow-y-auto rounded-t-[1.75rem] border border-border/70 bg-card p-4 shadow-2xl sm:rounded-[1.75rem] sm:p-6">
-            <div className="mb-4 flex items-center justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Kelola booking</p><h2 id="portal-items-dialog-title" className="mt-1 text-lg font-semibold">Ubah pilihan barang</h2></div><button type="button" onClick={() => setManageDialog(null)} disabled={submitting} aria-label="Tutup pengaturan barang" className="grid size-9 place-items-center rounded-full border border-border"><X className="size-4" /></button></div>
+          <section role="dialog" aria-modal="true" aria-labelledby="portal-items-dialog-title" className="max-h-[94dvh] w-full max-w-2xl overflow-y-auto rounded-t-[1.5rem] border border-border/70 bg-card p-3 shadow-2xl sm:rounded-[1.5rem] sm:p-4">
+            <div className="mb-4 flex items-center justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Kelola booking</p><h2 id="portal-items-dialog-title" className="mt-1 text-lg font-semibold">Atur barang booking</h2></div><button type="button" onClick={() => setManageDialog(null)} disabled={submitting} aria-label="Tutup pengaturan barang" className="grid size-9 place-items-center rounded-full border border-border"><X className="size-4" /></button></div>
 
-            <div className="space-y-4">
-              <p className="text-xs leading-5 text-muted-foreground">Pilih barang yang ingin disesuaikan, lalu atur jumlahnya. Pengelola akan meninjau usulan sebelum perubahan diterapkan.</p>
-              {!hasRental ? <p className="rounded-xl bg-muted/45 p-3 text-xs leading-5 text-muted-foreground">Booking ini hanya berisi pembelian. Untuk menambahkan barang sewaan, buat booking baru agar jadwalnya dapat ditentukan.</p> : null}
-              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <select value={newOptionKey} onChange={(event) => setNewOptionKey(event.target.value)} className="h-11 min-w-0 rounded-xl border border-border bg-background px-3 text-sm" aria-label="Pilih barang atau varian tambahan">
-                  <option value="">Pilih barang atau varian tambahan</option>
-                  {itemChangeOptions.map((option) => <option key={option.key} value={option.key}>{optionLabel(option)}</option>)}
-                </select>
-                <button type="button" onClick={addDraftOption} disabled={!newOptionKey || submitting} className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border px-4 text-sm font-semibold disabled:opacity-50"><Plus className="size-4" /> Tambahkan</button>
-              </div>
-              {draftOptions.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">Belum ada item dalam usulan perubahan.</p>
+            <div className="space-y-3">
+              <p className="text-xs leading-5 text-muted-foreground">Atur pilihan dan jumlah barang, lalu kirim usulan.</p>
+              <aside className="flex items-start gap-2.5 rounded-xl border border-primary/30 bg-primary/[0.07] p-3" aria-label="Informasi persetujuan perubahan barang">
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+                <p className="text-xs leading-5 text-foreground/90">Penambahan atau perubahan barang masih berupa pengajuan. Admin akan memeriksa ketersediaan dan kebijakan operasional; booking baru diperbarui setelah disetujui.</p>
+              </aside>
+              {!hasRental ? <p className="rounded-xl bg-muted/45 p-3 text-xs leading-5 text-muted-foreground">Hanya untuk pembelian. Buat booking baru untuk sewa.</p> : null}
+              <section className="rounded-2xl border border-primary/25 bg-primary/[0.045] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">Barang booking</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {draftOptions.length} jenis · {draftOptions.reduce((sum, entry) => sum + entry.quantity, 0)} unit dalam usulan
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCatalogOpen(true)
+                      setError(null)
+                    }}
+                    disabled={submitting}
+                    className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
+                  >
+                    <Plus className="size-3.5" /> Tambah / ubah barang
+                  </button>
+                </div>
+                <p className="mt-2 text-[10px] leading-4 text-muted-foreground">
+                  Katalog dibuka terpisah agar ringkasan barang, estimasi, dan tombol pengajuan tetap ringkas dalam satu halaman.
+                </p>
+              </section>
+              <div>
+                <p className="mb-2 text-xs font-semibold">Barang dalam usulan</p>
+                {draftOptions.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-border p-3 text-center text-xs text-muted-foreground">Belum ada item dalam usulan perubahan.</p>
               ) : (
-                <div className="divide-y divide-border/60 rounded-2xl border border-border/70">
+                <div className="max-h-52 divide-y divide-border/60 overflow-y-auto overscroll-contain rounded-2xl border border-border/70">
                   {draftOptions.map(({ option, quantity }) => (
-                    <div key={option.key} className="flex items-center justify-between gap-3 p-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold">{option.kind === "rental" ? "Sewa" : "Beli"} · {option.barang_nama}{option.varian_nama ? " · " + option.varian_nama : ""}</p>
-                        <p className="mt-1 text-[11px] text-muted-foreground">{formatRupiah(option.price)}{option.kind === "rental" ? " / periode · " + draftLinePeriods(option) + " periode" : " / unit"}</p>
+                    <div key={option.key} className="flex items-center justify-between gap-2.5 p-2.5 sm:p-3">
+                      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                        <div className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted/60 text-primary/55">
+                          {option.imageUrl ? (
+                            <Image src={option.imageUrl} alt="" fill unoptimized sizes="44px" className="object-contain p-1" />
+                          ) : (
+                            option.kind === "rental" ? <Tent className="size-5" /> : <ShoppingBag className="size-5" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold text-primary">{option.kind === "rental" ? "Sewa" : "Beli"}</p>
+                          <p className="line-clamp-2 text-xs font-semibold leading-4">{option.barang_nama}{option.varian_nama ? " · " + option.varian_nama : ""}</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">{formatRupiah(option.price)}{option.kind === "rental" ? " / periode · " + draftLinePeriods(option) + " periode" : " / unit"}</p>
+                        </div>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1.5">
+                      <div className="flex shrink-0 items-center gap-1">
                         <button type="button" onClick={() => updateDraftQuantity(option.key, quantity - 1)} disabled={submitting || quantity <= 1} aria-label="Kurangi jumlah" className="grid size-8 place-items-center rounded-full border border-border disabled:opacity-40">−</button>
                         <span className="min-w-6 text-center text-sm font-semibold tabular-nums">{quantity}</span>
                         <button type="button" onClick={() => updateDraftQuantity(option.key, quantity + 1)} disabled={submitting || quantity >= 20} aria-label="Tambah jumlah" className="grid size-8 place-items-center rounded-full border border-border disabled:opacity-40">+</button>
@@ -1510,15 +1835,42 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
                   ))}
                 </div>
               )}
-              <div className="rounded-2xl bg-muted/45 p-4">
-                <div className="flex items-center justify-between gap-3"><span className="text-xs text-muted-foreground">Estimasi biaya usulan</span><strong className="text-base text-primary">{formatRupiah(draftEstimate)}</strong></div>
-                {draftIncludesRental ? <p className="mt-2 text-[11px] text-muted-foreground">Durasi {formatRentalStayLabel(pickupDate, returnDate) ?? "belum valid"} · {formatPortalDate(pickupDate)} – {formatPortalDate(returnDate)}.</p> : null}
-                <p className="mt-2 text-[10px] leading-4 text-muted-foreground">Estimasi dapat berubah setelah pengelola memeriksa tarif dan jadwal.</p>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-[11px] text-muted-foreground">{draftOptions.length}/{MAX_CHANGE_LINES} jenis item dalam usulan.</p>
-                <button type="button" onClick={() => void requestItemChange()} disabled={submitting || !itemDraftChanged || draftOptions.length === 0} className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-xs font-semibold text-primary-foreground disabled:opacity-50">
-                  {submitting ? <LoaderCircle className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />} Kirim usulan perubahan
+              <div className="rounded-2xl border border-primary/20 bg-primary/[0.035] p-4">
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <span className="text-muted-foreground">Estimasi booking saat ini</span>
+                  <strong className="tabular-nums">{formatRupiah(portalEstimate)}</strong>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Estimasi usulan baru</span>
+                  <strong className="tabular-nums text-primary">{formatRupiah(draftEstimate)}</strong>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-3 border-t border-primary/15 pt-2 text-xs">
+                  <span className="font-semibold text-foreground">
+                    {draftEstimate - portalEstimate > 0
+                      ? "Perkiraan tambahan biaya"
+                      : draftEstimate - portalEstimate < 0
+                        ? "Potensi pengurangan biaya"
+                        : "Selisih estimasi"}
+                  </span>
+                  <strong className="tabular-nums text-primary">
+                    {draftEstimate - portalEstimate > 0 ? "+ " : draftEstimate - portalEstimate < 0 ? "− " : ""}
+                    {formatRupiah(Math.abs(draftEstimate - portalEstimate))}
+                  </strong>
+                </div>
+                {draftIncludesRental ? <p className="mt-2 text-[10px] leading-4 text-muted-foreground">Durasi {formatRentalStayLabel(pickupDate, returnDate) ?? "belum valid"} · {formatPortalDate(pickupDate)} – {formatPortalDate(returnDate)}. Tarif rental dikalikan otomatis sesuai jumlah periode.</p> : null}
+                <p className="mt-2 text-[10px] leading-4 text-muted-foreground">Nilai ini merupakan estimasi sebelum pemeriksaan tarif, ketersediaan, dan persetujuan admin.</p>
+              </div>
+              <div className="sticky bottom-0 -mx-3 flex flex-col gap-2 border-t border-border/70 bg-card/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:-mx-4 sm:px-4">
+                <div className="flex items-center justify-between gap-3 text-[10px]">
+                  <span className="text-muted-foreground">
+                    {draftHasChanges ? "Ada perubahan pada usulan." : "Belum ada perubahan dari booking saat ini."}
+                  </span>
+                  <strong className="tabular-nums">{draftOptions.length}/{MAX_CHANGE_LINES} jenis</strong>
+                </div>
+                <button type="button" onClick={() => void requestItemChange()} disabled={submitting || !draftHasChanges || draftOptions.length === 0} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-xs font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40">
+                  {submitting ? <LoaderCircle className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+                  {draftHasChanges ? "Kirim usulan perubahan" : "Tidak ada perubahan"}
                 </button>
               </div>
             </div>
@@ -1526,29 +1878,328 @@ export default function BookingPortalClient({ catalog }: { catalog: Catalog }) {
         </div>
       ) : null}
 
+      {activeTab === "manage" && manageDialog === "items" && catalogOpen && canEditItems ? (
+        <div
+          className="fixed inset-0 z-[120] flex items-end justify-center bg-slate-950/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !submitting) setCatalogOpen(false)
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="portal-item-catalog-title"
+            className="flex max-h-[96dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[1.5rem] border border-border/70 bg-card shadow-2xl sm:rounded-[1.5rem]"
+          >
+            <header className="shrink-0 border-b border-border/70 px-3 py-3 sm:px-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Katalog Akasha</p>
+                  <h2 id="portal-item-catalog-title" className="mt-0.5 text-base font-semibold">Tambah atau ubah barang</h2>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    Pilih barang, sesuaikan jumlah, lalu kembali ke ringkasan usulan.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCatalogOpen(false)}
+                  disabled={submitting}
+                  aria-label="Kembali ke ringkasan barang"
+                  className="grid size-9 shrink-0 place-items-center rounded-full border border-border"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+              <label className="relative mt-3 block">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="search"
+                  value={catalogSearch}
+                  onChange={(event) => setCatalogSearch(event.target.value)}
+                  placeholder="Cari barang, varian, atau kategori…"
+                  aria-label="Cari barang di katalog"
+                  className="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-xs outline-none transition focus:border-primary"
+                />
+              </label>
+              <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+                {catalogCategories.map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setCatalogCategory(category)}
+                    aria-pressed={catalogCategory === category}
+                    className={catalogCategory === category
+                      ? "shrink-0 rounded-full border border-primary bg-primary px-3 py-1.5 text-[10px] font-semibold text-primary-foreground"
+                      : "shrink-0 rounded-full border border-border bg-background px-3 py-1.5 text-[10px] font-semibold text-muted-foreground"}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4">
+              {filteredItemChangeOptions.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border px-3 py-10 text-center">
+                  <Package className="mx-auto size-6 text-muted-foreground/60" />
+                  <p className="mt-2 text-xs font-semibold">Barang tidak ditemukan</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">Coba kata kunci atau kategori lainnya.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+                  {filteredItemChangeOptions.map((option) => {
+                    const quantity = draftQty[option.key] ?? 0
+                    const periods = draftLinePeriods(option)
+                    const estimatedPerUnit = calculateRentalEstimate(1, option.price, periods)
+                    const estimatedLine = calculateRentalEstimate(quantity, option.price, periods)
+                    const isAtLineLimit = quantity === 0 && draftOptions.length >= MAX_CHANGE_LINES
+                    return (
+                      <article
+                        key={option.key}
+                        className={"min-w-0 overflow-hidden rounded-xl border bg-card transition " + (
+                          quantity > 0 ? "border-primary/55 ring-1 ring-primary/15" : "border-border/70"
+                        )}
+                      >
+                        <div className="relative aspect-[5/4] overflow-hidden bg-muted/55">
+                          {option.imageUrl ? (
+                            <Image
+                              src={option.imageUrl}
+                              alt={option.barang_nama}
+                              fill
+                              unoptimized
+                              sizes="(max-width: 640px) 46vw, 220px"
+                              className="object-contain p-2"
+                            />
+                          ) : (
+                            <div className="grid size-full place-items-center text-primary/55">
+                              {option.target_kind === "package"
+                                ? <Package className="size-8" strokeWidth={1.25} />
+                                : option.kind === "rental"
+                                  ? <Tent className="size-8" strokeWidth={1.25} />
+                                  : <ShoppingBag className="size-8" strokeWidth={1.25} />}
+                            </div>
+                          )}
+                          <span className="absolute left-2 top-2 rounded-full border border-white/30 bg-background/90 px-2 py-1 text-[9px] font-bold text-foreground">
+                            {option.kind === "rental" ? "SEWA" : "BELI"}
+                          </span>
+                          {quantity > 0 ? (
+                            <span className="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                              {quantity}
+                            </span>
+                          ) : null}
+                          {option.discountPercent > 0 && option.normalPrice > option.price ? (
+                            <span className="absolute bottom-2 right-2 rounded-full bg-emerald-600 px-2 py-1 text-[9px] font-bold text-white">
+                              Hemat {Math.round(option.discountPercent)}%
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="flex min-h-[150px] flex-col p-2.5">
+                          <p className="line-clamp-1 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">{option.kategori_nama}</p>
+                          <p className="mt-0.5 line-clamp-2 min-h-8 text-[11px] font-semibold leading-4">{option.barang_nama}</p>
+                          {option.varian_nama ? <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">{option.varian_nama}</p> : null}
+                          {option.deskripsi ? <p className="mt-1 line-clamp-2 text-[9px] leading-3.5 text-muted-foreground">{option.deskripsi}</p> : null}
+                          <div className="mt-1.5">
+                            {option.discountPercent > 0 && option.normalPrice > option.price ? (
+                              <p className="text-[9px] text-muted-foreground line-through">{formatRupiah(option.normalPrice)}</p>
+                            ) : null}
+                            <p className="text-xs font-bold leading-4 text-primary">{formatRupiah(option.price)}</p>
+                            <p className="text-[9px] leading-4 text-muted-foreground">
+                              {option.kind === "rental"
+                                ? "/ " + (option.priceDurationValue ?? 1) + " " + (option.priceDurationUnit ?? "hari")
+                                : "/ unit"}
+                            </p>
+                          </div>
+                          {option.kind === "rental" ? (
+                            <p className="mt-1 text-[9px] leading-4 text-muted-foreground">
+                              {periods} periode · 1 unit: <strong className="text-foreground">{formatRupiah(estimatedPerUnit)}</strong>
+                            </p>
+                          ) : null}
+                          <div className="mt-auto pt-2">
+                            {quantity === 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => addDraftOption(option.key)}
+                                disabled={submitting || isAtLineLimit}
+                                className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-lg bg-primary px-2 text-[10px] font-bold text-primary-foreground disabled:opacity-40"
+                              >
+                                <Plus className="size-3.5" /> Tambah
+                              </button>
+                            ) : (
+                              <div className="flex items-center justify-between gap-1 rounded-lg border border-primary/25 bg-primary/[0.045] p-1">
+                                <button
+                                  type="button"
+                                  onClick={() => updateDraftQuantity(option.key, quantity - 1)}
+                                  disabled={submitting}
+                                  aria-label={"Kurangi " + option.barang_nama}
+                                  className="grid size-7 shrink-0 place-items-center rounded-md border border-border bg-card text-sm disabled:opacity-40"
+                                >
+                                  −
+                                </button>
+                                <span className="min-w-5 text-center text-xs font-bold tabular-nums">{quantity}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateDraftQuantity(option.key, quantity + 1)}
+                                  disabled={submitting || quantity >= 20}
+                                  aria-label={"Tambah " + option.barang_nama}
+                                  className="grid size-7 shrink-0 place-items-center rounded-md border border-border bg-card text-sm disabled:opacity-40"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            )}
+                            {quantity > 0 ? (
+                              <p className="mt-1 text-right text-[9px] font-semibold text-primary">{formatRupiah(estimatedLine)}</p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              )}
+              {draftIncludesRental ? (
+                <p className="mt-3 rounded-xl bg-primary/[0.06] px-3 py-2 text-[10px] leading-4 text-muted-foreground">
+                  Estimasi otomatis mengikuti periode {formatRentalStayLabel(pickupDate, returnDate) ?? "booking"} ({formatPortalDate(pickupDate)} – {formatPortalDate(returnDate)}).
+                </p>
+              ) : null}
+            </div>
+
+            <footer className="shrink-0 border-t border-border/70 bg-card/95 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:px-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Pilihan sementara</p>
+                  <p className="text-xs font-semibold">{draftOptions.length} jenis · {draftOptions.reduce((sum, entry) => sum + entry.quantity, 0)} unit</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCatalogOpen(false)}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-5 text-xs font-bold text-primary-foreground"
+                >
+                  Selesai memilih
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
+      {activeTab === "manage" && alternativeDraft ? (
+        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !submitting) setAlternativeDraft(null) }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="portal-alternative-dialog-title" className="w-full max-w-lg rounded-t-[1.5rem] border border-border/70 bg-card p-4 shadow-2xl sm:rounded-[1.5rem]">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Pengajuan alternatif</p>
+                <h2 id="portal-alternative-dialog-title" className="mt-1 text-base font-semibold">Ajukan pilihan pengganti?</h2>
+              </div>
+              <button type="button" onClick={() => setAlternativeDraft(null)} disabled={submitting} aria-label="Tutup konfirmasi alternatif" className="grid size-9 shrink-0 place-items-center rounded-full border border-border disabled:opacity-50"><X className="size-4" /></button>
+            </div>
+            <div className="mt-3 rounded-xl bg-muted/45 p-3">
+              <p className="text-[10px] text-muted-foreground">Barang saat ini</p>
+              <p className="mt-0.5 text-xs font-semibold">{alternativeDraft.line.name}{alternativeDraft.line.variant ? " · " + alternativeDraft.line.variant : ""}</p>
+              <div className="my-2 border-t border-border/60" />
+              <p className="text-[10px] text-muted-foreground">Pilihan yang diajukan</p>
+              <p className="mt-0.5 text-sm font-semibold">{alternativeDraft.option.barang_nama}{alternativeDraft.option.varian_nama ? " · " + alternativeDraft.option.varian_nama : ""}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">{formatRupiah(alternativeDraft.option.price)}{alternativeDraft.option.priceDurationValue && alternativeDraft.option.priceDurationUnit ? " / " + alternativeDraft.option.priceDurationValue + " " + alternativeDraft.option.priceDurationUnit : ""} · {alternativeDraft.line.quantity} unit</p>
+            </div>
+            <aside className="mt-3 flex items-start gap-2.5 rounded-xl border border-primary/30 bg-primary/[0.07] p-3">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+              <p className="text-xs leading-5 text-foreground/90">Pilihan ini belum langsung mengganti barang booking. Admin akan meninjau ketersediaan dan kebijakan operasional; perubahan berlaku setelah disetujui.</p>
+            </aside>
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setAlternativeDraft(null)} disabled={submitting} className="inline-flex h-10 items-center justify-center rounded-full border border-border px-4 text-xs font-semibold disabled:opacity-50">Kembali</button>
+              <button type="button" onClick={() => void confirmAlternativeRequest()} disabled={submitting} className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground disabled:opacity-50">
+                {submitting ? <LoaderCircle className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />} Kirim pengajuan
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       {activeTab === "manage" && manageDialog === "schedule" && hasRental && canEdit ? (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !submitting) setManageDialog(null) }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="portal-schedule-dialog-title" className="max-h-[94dvh] w-full max-w-lg overflow-y-auto rounded-t-[1.75rem] border border-border/70 bg-card p-4 shadow-2xl sm:rounded-[1.75rem] sm:p-6">
+          <section role="dialog" aria-modal="true" aria-labelledby="portal-schedule-dialog-title" className="max-h-[94dvh] w-full max-w-lg overflow-y-auto rounded-t-[1.5rem] border border-border/70 bg-card p-3 shadow-2xl sm:rounded-[1.5rem] sm:p-4">
             <div className="mb-4 flex items-center justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Kelola booking</p><h2 id="portal-schedule-dialog-title" className="mt-1 text-lg font-semibold">Ubah jadwal sewa</h2></div><button type="button" onClick={() => setManageDialog(null)} disabled={submitting} aria-label="Tutup perubahan jadwal" className="grid size-9 place-items-center rounded-full border border-border"><X className="size-4" /></button></div>
 
-            <form onSubmit={requestScheduleChange} className="space-y-4">
-              <p className="text-xs leading-5 text-muted-foreground">Pilih jadwal yang paling sesuai. Jadwal baru berlaku setelah disetujui pengelola.</p>
-              <div className="grid gap-3 sm:grid-cols-2">
+            <form onSubmit={requestScheduleChange} className="space-y-3">
+              <aside className="flex items-start gap-2.5 rounded-xl border border-primary/30 bg-primary/[0.07] p-3">
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+                <p className="text-xs leading-5 text-foreground/90">Perubahan jadwal merupakan pengajuan. Admin akan meninjau sesuai kebijakan dan ketersediaan operasional; jadwal baru berlaku setelah disetujui.</p>
+              </aside>
+              <div className="rounded-2xl border border-primary/25 bg-primary/[0.035] p-3">
+                <p className="mb-3 text-xs font-semibold text-primary">Tentukan jadwal baru</p>
+                <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block space-y-1.5 text-xs font-medium">
                   Tanggal pengambilan
-                  <input type="date" required min={new Date().toLocaleDateString("en-CA", { timeZone: portal.business_timezone || "Asia/Jakarta" })} value={pickupDate} onChange={(event) => { setPickupDate(event.target.value); if (returnDate < event.target.value) setReturnDate(event.target.value) }} className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm" />
+                  <input
+                    type="date"
+                    required
+                    min={minimumSchedulePickupDate}
+                    value={schedulePickupDate}
+                    onChange={(event) => {
+                      const nextPickupDate = event.target.value
+                      setSchedulePickupDate(nextPickupDate)
+                      if (scheduleReturnDate < nextPickupDate) setScheduleReturnDate(nextPickupDate)
+                      setError(null)
+                    }}
+                    className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                  />
                 </label>
                 <label className="block space-y-1.5 text-xs font-medium">
                   Tanggal pengembalian
-                  <input type="date" required min={pickupDate} value={returnDate} onChange={(event) => setReturnDate(event.target.value)} className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm" />
+                  <input
+                    type="date"
+                    required
+                    min={schedulePickupDate}
+                    value={scheduleReturnDate}
+                    onChange={(event) => {
+                      setScheduleReturnDate(event.target.value)
+                      setError(null)
+                    }}
+                    className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                  />
                 </label>
+                </div>
+                <p className="mt-3 text-[10px] leading-4 text-muted-foreground">
+                  Untuk memperpanjang masa sewa, tanggal pengambilan tidak perlu diubah. Pertahankan tanggal mulai dan cukup pilih tanggal pengembalian yang baru.
+                </p>
               </div>
-              <div className="rounded-2xl bg-muted/45 p-4">
-                <div className="flex items-center justify-between gap-3 text-xs"><span className="text-muted-foreground">Durasi usulan</span><strong>{formatRentalStayLabel(pickupDate, returnDate) ?? "Periksa tanggal"}</strong></div>
-                <div className="mt-2 flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">Estimasi biaya baru</span><strong className="text-primary">{formatRupiah(proposedScheduleEstimate)}</strong></div>
-                <p className="mt-2 text-[10px] leading-4 text-muted-foreground">Perhitungan akhir akan disesuaikan dengan waktu serah-terima aktual.</p>
+              <div className="rounded-2xl border border-primary/20 bg-primary/[0.035] p-4">
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <span className="text-muted-foreground">Durasi usulan</span>
+                  <strong>{formatRentalStayLabel(schedulePickupDate, scheduleReturnDate) ?? "Periksa tanggal"}</strong>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+                  <span className="text-muted-foreground">Estimasi saat ini</span>
+                  <strong className="tabular-nums">{formatRupiah(currentScheduleEstimate)}</strong>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Estimasi setelah perubahan</span>
+                  <strong className="tabular-nums text-primary">{formatRupiah(proposedScheduleEstimate)}</strong>
+                </div>
+                <div className="mt-2 border-t border-primary/15 pt-2">
+                  <div className="flex items-center justify-between gap-3 text-xs">
+                    <span className="font-semibold text-foreground">
+                      {scheduleEstimateDelta > 0
+                        ? "Perkiraan tambahan biaya"
+                        : scheduleEstimateDelta < 0
+                          ? "Potensi pengurangan biaya"
+                          : "Perubahan biaya"}
+                    </span>
+                    <strong className={"tabular-nums " + (
+                      scheduleEstimateDelta > 0 ? "text-amber-600 dark:text-amber-400"
+                        : scheduleEstimateDelta < 0 ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-foreground"
+                    )}>
+                      {scheduleEstimateDelta > 0 ? "+ " : scheduleEstimateDelta < 0 ? "− " : ""}
+                      {formatRupiah(Math.abs(scheduleEstimateDelta))}
+                    </strong>
+                  </div>
+                </div>
+                <p className="mt-2 text-[10px] leading-4 text-muted-foreground">
+                  Estimasi berubah otomatis saat tanggal diperbarui. Nominal final dan ketersediaan tetap menunggu pemeriksaan admin.
+                </p>
               </div>
-              <button type="submit" disabled={submitting} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground disabled:opacity-50">
+              <button type="submit" disabled={submitting || !scheduleDatesValid} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground disabled:opacity-50">
                 {submitting ? <LoaderCircle className="size-3.5 animate-spin" /> : <CalendarDays className="size-3.5" />} Kirim permintaan jadwal
               </button>
             </form>

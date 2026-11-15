@@ -24,6 +24,7 @@
   "registries": {
     "@shadcn-space": {
       "url": "https://shadcnspace.com/r/{name}.json"
-    }
+    },
+    "@magicui": "https://magicui.design/r/{name}"
   }
 }

@@ -1,4 +1,6 @@
-import BookingCatalogExperience from "@/components/booking/catalog-experience"
+import BookingCatalogExperience, {
+  type CatalogFilter,
+} from "@/components/booking/catalog-experience"
 import { fetchCatalog } from "@/lib/catalog"
 
 export const metadata = {
@@ -6,13 +8,33 @@ export const metadata = {
   description: "Pilih perlengkapan rental dan pembelian di katalog publik Akasha Outdoor.",
 }
 
-export default async function KatalogPage() {
-  const { catalog, catalogLoadFailed } = await fetchCatalog()
-    .then((catalog) => ({ catalog, catalogLoadFailed: false }))
-    .catch(() => ({
-      catalog: { usahaNama: null, items: [], packages: [], sales: [] },
-      catalogLoadFailed: true,
-    }))
+type KatalogPageProps = {
+  searchParams: Promise<{ filter?: string | string[] }>
+}
 
-  return <BookingCatalogExperience catalog={catalog} catalogLoadFailed={catalogLoadFailed} />
+function resolveCatalogFilter(value: string | string[] | undefined): CatalogFilter {
+  const filter = Array.isArray(value) ? value[0] : value
+  return filter === "rental" || filter === "sale" || filter === "package"
+    ? filter
+    : "all"
+}
+
+export default async function KatalogPage({ searchParams }: KatalogPageProps) {
+  const [params, { catalog, catalogLoadFailed }] = await Promise.all([
+    searchParams,
+    fetchCatalog()
+      .then((catalog) => ({ catalog, catalogLoadFailed: false }))
+      .catch(() => ({
+        catalog: { usahaNama: null, items: [], packages: [], sales: [] },
+        catalogLoadFailed: true,
+      })),
+  ])
+
+  return (
+    <BookingCatalogExperience
+      catalog={catalog}
+      catalogLoadFailed={catalogLoadFailed}
+      initialFilter={resolveCatalogFilter(params.filter)}
+    />
+  )
 }

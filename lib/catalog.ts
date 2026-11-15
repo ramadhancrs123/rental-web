@@ -33,6 +33,7 @@ export type CatalogVariant = {
   priceDurationUnit: string
   currency_code: string
   inventory_mode: "serialized" | "quantity" | null
+  imageUrl: string | null
 }
 
 export type CatalogItem = {
@@ -66,6 +67,13 @@ export type CatalogSaleOption = {
   imageUrl?: string | null
 }
 
+export type CatalogPackageComponent = {
+  name: string
+  variantName: string | null
+  quantity: number
+  note: string | null
+}
+
 export type CatalogPackage = {
   paket_sewa_id: string
   nama: string
@@ -80,6 +88,7 @@ export type CatalogPackage = {
   priceDurationUnit: string | null
   priceSource: "tarif" | "harga_dasar" | null
   canBook: boolean
+  components: CatalogPackageComponent[]
 }
 
 export type Catalog = {
@@ -163,8 +172,17 @@ type PublicPackagePromo = {
   currency_code: string
 }
 
+type PublicPackageComponent = {
+  paket_sewa_id: string
+  jumlah: string | number
+  catatan: string | null
+  barang: { nama: string } | null
+  varian: { nama: string } | null
+}
+
 type PublicMedia = {
   barang_id?: string
+  varian_barang_id?: string
   paket_sewa_id?: string
   storage_bucket: string
   storage_path: string
@@ -268,21 +286,47 @@ async function loadCatalogBase(): Promise<CatalogBase> {
   const saleRows = (saleRes.data ?? []) as PublicSaleRow[]
   const productIds = [...new Set(products.map((row) => row.barang_id))]
 
-  const mediaRes = productIds.length
-    ? await sb
-        .from("v_public_barang_media")
-        .select("barang_id,storage_bucket,storage_path,media_type,urutan,is_cover")
-        .in("barang_id", productIds)
-        .order("is_cover", { ascending: false })
-        .order("urutan", { ascending: true })
-    : { data: [] as PublicMedia[], error: null }
+  const variantIds = [...new Set([
+    ...rentalRows.map((row) => row.varian_barang_id),
+    ...saleRows.map((row) => row.varian_barang_id),
+  ].filter((id): id is string => Boolean(id)))]
+
+  const [mediaRes, variantMediaRes] = await Promise.all([
+    productIds.length
+      ? sb
+          .from("v_public_barang_media")
+          .select("barang_id,storage_bucket,storage_path,media_type,urutan,is_cover")
+          .in("barang_id", productIds)
+          .order("is_cover", { ascending: false })
+          .order("urutan", { ascending: true })
+      : Promise.resolve({ data: [] as PublicMedia[], error: null }),
+    variantIds.length
+      ? sb
+          .from("varian_barang_media")
+          .select("varian_barang_id,storage_bucket,storage_path,media_type,urutan,is_cover")
+          .in("varian_barang_id", variantIds)
+          .eq("storage_bucket", PUBLIC_MEDIA_BUCKET)
+          .eq("status", "valid")
+          .like("media_type", "image/%")
+          .order("is_cover", { ascending: false })
+          .order("urutan", { ascending: true })
+      : Promise.resolve({ data: [] as PublicMedia[], error: null }),
+  ])
 
   if (mediaRes.error) throw mediaRes.error
+  if (variantMediaRes.error) throw variantMediaRes.error
 
   const coverMediaByProduct = new Map<string, PublicMedia>()
   for (const media of (mediaRes.data ?? []) as PublicMedia[]) {
     if (media.barang_id && !coverMediaByProduct.has(media.barang_id)) {
       coverMediaByProduct.set(media.barang_id, media)
+    }
+  }
+
+  const coverMediaByVariant = new Map<string, PublicMedia>()
+  for (const media of (variantMediaRes.data ?? []) as PublicMedia[]) {
+    if (media.varian_barang_id && !coverMediaByVariant.has(media.varian_barang_id)) {
+      coverMediaByVariant.set(media.varian_barang_id, media)
     }
   }
 
@@ -325,6 +369,8 @@ async function loadCatalogBase(): Promise<CatalogBase> {
         priceDurationUnit: option.priceDurationUnit ?? "hari",
         currency_code: option.currency_code,
         inventory_mode: option.inventory_mode,
+        imageUrl: getPublicMediaUrl(coverMediaByVariant.get(option.varian_barang_id as string))
+          ?? getPublicMediaUrl(coverMediaByProduct.get(product.barang_id)),
       }))
 
     const directRentalOption = rentalOptions.find((option) => option.kind === "product") ?? null
@@ -362,7 +408,9 @@ async function loadCatalogBase(): Promise<CatalogBase> {
     discountPercent: toNumber(row.diskon_persen),
     currency_code: row.currency_code?.trim() || "IDR",
     inventory_mode: row.inventory_mode ?? "serialized",
-    imageUrl: getPublicMediaUrl(coverMediaByProduct.get(row.barang_id)),
+    imageUrl: (row.varian_barang_id
+      ? getPublicMediaUrl(coverMediaByVariant.get(row.varian_barang_id))
+      : null) ?? getPublicMediaUrl(coverMediaByProduct.get(row.barang_id)),
   }))
 
   return {
@@ -387,7 +435,7 @@ async function loadPublicPackages(): Promise<CatalogPackage[]> {
   const packageIds = publicPackages.map((item) => item.paket_sewa_id)
   if (packageIds.length === 0) return []
 
-  const [mediaRes, tariffRes, promoRes] = await Promise.all([
+  const [mediaRes, tariffRes, promoRes, componentsRes] = await Promise.all([
     sb
       .from("paket_media")
       .select("paket_sewa_id,storage_bucket,storage_path,media_type,urutan,is_cover")
@@ -406,11 +454,17 @@ async function loadPublicPackages(): Promise<CatalogPackage[]> {
       .from("v_public_paket_promo")
       .select("paket_sewa_id,tarif_sewa_id,harga_normal,harga_promo,currency_code")
       .in("paket_sewa_id", packageIds),
+    sb
+      .from("komponen_paket")
+      .select("paket_sewa_id,jumlah,catatan,barang:barang!komponen_barang_tenant_fk(nama),varian:varian_barang!komponen_varian_tenant_fk(nama)")
+      .in("paket_sewa_id", packageIds)
+      .order("created_at", { ascending: true }),
   ])
 
   if (mediaRes.error) throw mediaRes.error
   if (tariffRes.error) throw tariffRes.error
   if (promoRes.error) throw promoRes.error
+  if (componentsRes.error) throw componentsRes.error
 
   const coverMediaByPackage = new Map<string, PublicMedia>()
   for (const media of (mediaRes.data ?? []) as PublicMedia[]) {
@@ -421,6 +475,19 @@ async function loadPublicPackages(): Promise<CatalogPackage[]> {
 
   const tariffs = (tariffRes.data ?? []) as PublicTariff[]
   const promos = (promoRes.data ?? []) as PublicPackagePromo[]
+  const packageComponents = (componentsRes.data ?? []) as unknown as PublicPackageComponent[]
+  const componentsByPackage = new Map<string, CatalogPackageComponent[]>()
+  for (const component of packageComponents) {
+    const components = componentsByPackage.get(component.paket_sewa_id) ?? []
+    components.push({
+      name: component.barang?.nama ?? "Perlengkapan",
+      variantName: component.varian?.nama ?? null,
+      quantity: toNumber(component.jumlah),
+      note: component.catatan,
+    })
+    componentsByPackage.set(component.paket_sewa_id, components)
+  }
+
   return publicPackages.map((row) => {
     const packageTariffs = tariffs.filter((tariff) => tariff.paket_sewa_id === row.paket_sewa_id)
     const tariff = pickBestTariff(packageTariffs)
@@ -450,6 +517,7 @@ async function loadPublicPackages(): Promise<CatalogPackage[]> {
       priceDurationUnit: tariff?.durasi_unit ?? null,
       priceSource: tariff ? "tarif" : normalPrice !== null ? "harga_dasar" : null,
       canBook: Boolean(tariff),
+      components: componentsByPackage.get(row.paket_sewa_id) ?? [],
     }
   })
 }
@@ -467,7 +535,7 @@ const getCachedCatalogBase = unstable_cache(
 
 const getCachedPublicPackages = unstable_cache(
   loadPublicPackages,
-  ["public-catalog-packages-v3", USAHA_SLUG],
+  ["public-catalog-packages-v4", USAHA_SLUG],
   CACHE_OPTIONS,
 )
 

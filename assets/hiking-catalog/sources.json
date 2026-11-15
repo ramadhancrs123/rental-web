@@ -569,6 +569,49 @@
       ],
       "quality": "high_for_exact_historical_closure_dates",
       "limitations": "This notice only establishes the 7–11 Aug 2026 emergency closure. It does not by itself establish whether TNGGP is open or closed on 30 Oct 2026. Later access must be checked in the official booking system/current park notices."
+    },
+    {
+      "id": "S41",
+      "name": "Pengembangan Jalur Pendakian Ajisaka Berstandar Nasional",
+      "publisher": "Kementerian Kehutanan RI / Balai TNGHS",
+      "published_at": "2026-06-30",
+      "url": "https://www.kehutanan.go.id/pers/wujudkan-wisata-aman-dan-lestari-kemenhut-bersama-mitra-deklarasikan-jalur-pendakian-ajisaka-berstandar-nasional",
+      "source_type": "official_ministry_press_release",
+      "used_for": [
+        "Ajisaka route identity and location at Pintu Pendakian Ajisaka, RPTNW Gunung Salak I",
+        "multi-stakeholder route development and audit milestone"
+      ],
+      "quality": "high_for_official_program_and_route_identity",
+      "limitations": "Release documents a June 23 2026 development declaration and planned audit/SOP/route improvements; it does not establish that the route is open to the public or override a later closure notice."
+    },
+    {
+      "id": "S42",
+      "name": "Gunung Burangrang dibuka lagi via Legok Haji",
+      "publisher": "Mounture.com, citing information from the route manager Instagram account @gunungburangrang2050mdpl",
+      "published_at": "2026-09-30",
+      "url": "https://mounture.com/berita/gunung-burangrang-dibuka-lagi-via-legok-haji-jangan-lupa-bawa-turun-sampah/",
+      "source_type": "secondary_media_attributed_to_operator_announcement",
+      "used_for": [
+        "reported Legok Haji reopening effective 2026-09-28"
+      ],
+      "quality": "medium_for_reported_operator_announcement",
+      "limitations": "Secondary report attributes reopening to the manager's Instagram account; no signed notice or independently accessible primary announcement was retrieved. Does not override the provincial dry-season instruction without competent written clearance."
+    },
+    {
+      "id": "S43",
+      "name": "Portal resmi Balai Taman Nasional Gunung Halimun Salak",
+      "publisher": "Balai Taman Nasional Gunung Halimun Salak, Kementerian Kehutanan",
+      "published_at": "accessed_2026-10-30",
+      "url": "https://tnhalimunsalak.ksdae.kehutanan.go.id/",
+      "source_type": "official_park_portal",
+      "used_for": [
+        "TNGHS park jurisdiction and administrative extent",
+        "live portal route/status information surfaced in search result for Salak access gates and peak status",
+        "official TNGHS notice embedded in portal: Salak hiking closure from 2026-09-02 at Cidahu, Pasir Reungit, Cimalati and Ajisaka; Kawah Ratu tracking closure from Cidahu and Pasir Reungit",
+        "official GIS coordinates for Puncak Salak I, Puncak Salak II, Kawah Ratu and four hiking gates"
+      ],
+      "quality": "high_for_park_jurisdiction; dynamic_status_snapshot_requires_recheck",
+      "limitations": "Portal content includes the official notice text and dynamic GIS/status content. The indexed portal states Salak I and II are closed and reproduces the Balai notice effective 2 September 2026 until further notice. Treat status as a dated official portal observation; recheck before operational use."
     }
   ],
   "research_updated_at": "2026-10-30"

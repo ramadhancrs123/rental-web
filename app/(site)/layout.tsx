@@ -1,16 +1,9 @@
-import SiteHeader from "@/components/site-header"
-import SiteFooter from "@/components/site-footer"
+import SiteLayoutShell from "@/components/site-layout-shell"
 
 export default function SiteLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  return (
-    <>
-      <SiteHeader />
-      <main>{children}</main>
-      <SiteFooter />
-    </>
-  )
+  return <SiteLayoutShell>{children}</SiteLayoutShell>
 }
