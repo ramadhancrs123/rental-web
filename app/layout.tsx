@@ -1,5 +1,6 @@
 import { Inter, Instrument_Serif } from "next/font/google"
 import type { Metadata, Viewport } from "next"
+import { Analytics } from "@vercel/analytics/next"
 
 import "./globals.css"
 import "maplibre-gl/dist/maplibre-gl.css"
@@ -69,6 +70,7 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>{children}</ThemeProvider>
+        <Analytics />
       </body>
     </html>
   )
